@@ -53,11 +53,20 @@ public class User {
     @Column(name = "str_verification_token", length = 255)
     private String strVerificationToken;
 
+    @Column(name = "dt_verification_token_expires")
+    private LocalDateTime dtVerificationTokenExpires;
+
     @Column(name = "str_reset_token", length = 255)
     private String strResetToken;
 
     @Column(name = "dt_reset_token_expires")
     private LocalDateTime dtResetTokenExpires;
+
+    @Column(name = "str_refresh_token", length = 255)
+    private String strRefreshToken;
+
+    @Column(name = "dt_refresh_token_expires")
+    private LocalDateTime dtRefreshTokenExpires;
 
     @Column(name = "str_timezone", length = 60)
     private String strTimezone;

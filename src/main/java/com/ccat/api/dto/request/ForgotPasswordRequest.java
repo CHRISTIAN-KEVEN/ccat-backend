@@ -4,14 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-@Schema(description = "Credentials for authenticating an existing account")
-public record UserLoginRequest(
+@Schema(description = "Email address to send the OTP to")
+public record ForgotPasswordRequest(
 
         @Schema(description = "Registered email address", example = "alice@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank @Email
-        String strEmail,
-
-        @Schema(description = "Account password", example = "Str0ng!Pass", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank
-        String strPassword
+        String strEmail
 ) {}

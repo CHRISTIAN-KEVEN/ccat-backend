@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByStrUuid(String strUuid);
     Optional<User> findByStrVerificationToken(String token);
     Optional<User> findByStrResetToken(String token);
+    Optional<User> findByStrRefreshToken(String token);
     boolean existsByStrEmail(String strEmail);
     long countByEmStatus(UserStatus emStatus);
 }
