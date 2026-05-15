@@ -3,6 +3,8 @@ package com.ccat.api.repository;
 import com.ccat.api.model.entity.TestSession;
 import com.ccat.api.model.enums.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,8 +15,10 @@ public interface TestSessionRepository extends JpaRepository<TestSession, Long> 
     Optional<TestSession> findByStrUuid(String strUuid);
     List<TestSession> findByUserLgIdOrderByDtStartedDesc(Long userId);
     Optional<TestSession> findTopByUserLgIdAndEmStatusOrderByDtStartedDesc(Long userId, SessionStatus status);
-    // Used by EVER policy: COUNT > 0 permanently blocks any new free test
-    long countByUserLgIdAndBIsFreeTestTrue(Long userId);
+    // Used by EVER policy: COUNT > 0 permanently blocks any new free test.
+    // Explicit JPQL avoids Spring Data JPA mis-parsing the 'bIsFreeTest' boolean prefix.
+    @Query("SELECT COUNT(t) FROM TestSession t WHERE t.user.lgId = :userId AND t.bIsFreeTest = true")
+    long countFreeTestsByUser(@Param("userId") Long userId);
     boolean existsByStrUuid(String strUuid);
     List<TestSession> findByEmStatus(SessionStatus status);
 }

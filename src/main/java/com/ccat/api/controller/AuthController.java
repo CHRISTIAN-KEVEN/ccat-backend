@@ -86,6 +86,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Sign in with Google", description = "Verifies a Google OAuth access token and returns a CCAT session.")
+    @SecurityRequirements
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleAuthRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request.strAccessToken()));
+    }
+
     @Operation(summary = "Refresh access token",
                description = "Exchanges a valid refresh token for a new access token.")
     @ApiResponses({
@@ -136,6 +143,14 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(authService.getMe(principal.getUsername()));
+    }
+
+    @Operation(summary = "Update profile")
+    @PatchMapping("/me")
+    public ResponseEntity<UserResponse> updateMe(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(authService.updateMe(principal.getUsername(), request));
     }
 
     @Operation(summary = "Change password",

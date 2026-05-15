@@ -12,13 +12,31 @@ import java.util.Optional;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
-    Optional<Question> findByStrUuid(String strUuid);
-    List<Question> findByDomainStrDomainCodeAndBActiveTrue(String domainCode);
-    List<Question> findByDomainStrDomainCodeAndEmDifficultyAndBActiveTrue(String domainCode, QuestionDifficulty difficulty);
-    long countByDomainStrDomainCodeAndBActiveTrue(String domainCode);
-    boolean existsByStrUuid(String strUuid);
 
-    // RANDOM() is PostgreSQL-specific — do not use with another dialect
-    @Query("SELECT q FROM Question q WHERE q.domain.strDomainCode = :domainCode AND q.bActive = true ORDER BY FUNCTION('RANDOM')")
-    List<Question> findRandomByDomainCode(@Param("domainCode") String domainCode);
+    @Query("SELECT q FROM Question q WHERE q.strUuid = :uuid")
+    Optional<Question> findByStrUuid(@Param("uuid") String uuid);
+
+    @Query("SELECT q FROM Question q WHERE q.bActive = true ORDER BY q.dtCreated DESC")
+    List<Question> findByBActiveTrueOrderByDtCreatedDesc();
+
+    @Query("SELECT q FROM Question q WHERE q.domain.strDomainCode = :domainCode AND q.bActive = true")
+    List<Question> findByDomainStrDomainCodeAndBActiveTrue(@Param("domainCode") String domainCode);
+
+    @Query("SELECT q FROM Question q WHERE q.domain.strDomainCode = :domainCode AND q.emDifficulty = :difficulty AND q.bActive = true")
+    List<Question> findByDomainStrDomainCodeAndEmDifficultyAndBActiveTrue(
+            @Param("domainCode") String domainCode,
+            @Param("difficulty") QuestionDifficulty difficulty);
+
+    @Query("SELECT COUNT(q) FROM Question q WHERE q.domain.strDomainCode = :domainCode AND q.bActive = true")
+    long countByDomainStrDomainCodeAndBActiveTrue(@Param("domainCode") String domainCode);
+
+    @Query("SELECT CASE WHEN COUNT(q) > 0 THEN true ELSE false END FROM Question q WHERE q.strUuid = :uuid")
+    boolean existsByStrUuid(@Param("uuid") String uuid);
+
+    // Native query — RAND() is MySQL specific
+    @Query(value = "SELECT * FROM t_question WHERE str_domain_code = :domainCode AND b_active = true ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Question> findRandomByDomainCode(@Param("domainCode") String domainCode, @Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM t_question WHERE b_active = true ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Question> findRandom(@Param("limit") int limit);
 }

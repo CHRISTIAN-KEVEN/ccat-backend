@@ -13,6 +13,7 @@ import com.ccat.api.model.entity.User;
 import com.ccat.api.repository.UserRepository;
 import com.ccat.api.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,14 +21,26 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    @Transactional
+    public UserResponse updateMe(String email, UserUpdateRequest request) {
+        User user = userRepository.findByStrEmail(email).orElseThrow();
+        if (request.strFirstName() != null) user.setStrFirstName(request.strFirstName());
+        if (request.strLastName()  != null) user.setStrLastName(request.strLastName());
+        if (request.strTimezone()  != null) user.setStrTimezone(request.strTimezone());
+        if (request.strLocale()    != null) user.setStrLocale(request.strLocale());
+        return userMapper.toResponse(userRepository.save(user));
+    }
 
     private static final int OTP_TTL_MINUTES            = 60;
     private static final int VERIFICATION_TTL_HOURS     = 24;
@@ -207,6 +220,62 @@ public class AuthService {
         user.setStrRefreshToken(null);
         user.setDtRefreshTokenExpires(null);
         userRepository.save(user);
+    }
+
+    // -------------------------------------------------------------------------
+    // Google OAuth
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public AuthResponse googleLogin(String accessToken) {
+        // Verify token and fetch user info from Google
+        RestTemplate rest = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        Map<String, Object> info;
+        try {
+            info = rest.exchange(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class
+            ).getBody();
+        } catch (Exception e) {
+            throw new InvalidTokenException();
+        }
+
+        if (info == null || info.get("email") == null || !Boolean.TRUE.equals(info.get("email_verified"))) {
+            throw new InvalidTokenException();
+        }
+
+        String email     = (String) info.get("email");
+        String googleId  = (String) info.get("sub");
+        String firstName = (String) info.getOrDefault("given_name", "");
+        String lastName  = (String) info.getOrDefault("family_name", "");
+
+        User user = userRepository.findByStrEmail(email).orElseGet(() -> {
+            User u = new User();
+            u.setStrUuid(UUID.randomUUID().toString());
+            u.setStrEmail(email);
+            u.setStrFirstName(firstName);
+            u.setStrLastName(lastName);
+            u.setStrOauthProvider("google");
+            u.setStrOauthId(googleId);
+            u.setBEmailVerified(true);
+            return userRepository.save(u);
+        });
+
+        // Link google to existing account if not yet linked
+        if (user.getStrOauthProvider() == null) {
+            user.setStrOauthProvider("google");
+            user.setStrOauthId(googleId);
+            user.setBEmailVerified(true);
+        }
+        user.setIntLoginCount(user.getIntLoginCount() + 1);
+        user.setDtLastLogin(LocalDateTime.now());
+
+        return buildAuthResponse(userRepository.save(user));
     }
 
     // -------------------------------------------------------------------------
