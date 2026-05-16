@@ -172,7 +172,7 @@ public class AuthController {
     @ApiResponse(responseCode = "204", description = "Logged out")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal UserDetails principal) {
-        authService.logout(principal.getUsername());
+        if (principal != null) authService.logout(principal.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

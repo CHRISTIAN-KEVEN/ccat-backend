@@ -3,6 +3,7 @@ package com.ccat.api.controller;
 import com.ccat.api.dto.request.ResponseSubmitRequest;
 import com.ccat.api.dto.request.TestSessionCreateRequest;
 import com.ccat.api.dto.response.QuestionResponse;
+import com.ccat.api.dto.response.QuestionReviewResponse;
 import com.ccat.api.dto.response.ResponseSubmitResponse;
 import com.ccat.api.dto.response.TestResultResponse;
 import com.ccat.api.dto.response.TestSessionResponse;
@@ -146,5 +147,24 @@ public class TestSessionController {
             @PathVariable Long sessionId,
             @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(sessionService.getSessionQuestions(sessionId, principal.getUsername()));
+    }
+
+    @Operation(summary = "Get post-test review",
+               description = "Returns each question with the correct answer, the user's pick and explanation. Only available after the session is submitted.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Review data",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = QuestionReviewResponse.class)))),
+            @ApiResponse(responseCode = "404", description = "Session not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Session not yet submitted",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "401", description = "Not authenticated",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{sessionId}/review")
+    public ResponseEntity<List<QuestionReviewResponse>> getReview(
+            @PathVariable Long sessionId,
+            @AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(sessionService.getReview(sessionId, principal.getUsername()));
     }
 }

@@ -3,6 +3,7 @@ package com.ccat.api.service;
 import com.ccat.api.dto.request.ResponseSubmitRequest;
 import com.ccat.api.dto.request.TestSessionCreateRequest;
 import com.ccat.api.dto.response.QuestionResponse;
+import com.ccat.api.dto.response.QuestionReviewResponse;
 import com.ccat.api.dto.response.ResponseSubmitResponse;
 import com.ccat.api.dto.response.TestResultResponse;
 import com.ccat.api.dto.response.TestSessionResponse;
@@ -17,4 +18,5 @@ public interface TestSessionService {
     TestSessionResponse getById(Long sessionId, String userEmail);
     List<TestSessionResponse> getMyHistory(String userEmail);
     List<QuestionResponse> getSessionQuestions(Long sessionId, String userEmail);
+    List<QuestionReviewResponse> getReview(Long sessionId, String userEmail);
 }

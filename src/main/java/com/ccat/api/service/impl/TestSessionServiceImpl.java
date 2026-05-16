@@ -4,6 +4,7 @@ import com.ccat.api.dto.request.ResponseSubmitRequest;
 import com.ccat.api.dto.request.TestSessionCreateRequest;
 import com.ccat.api.dto.response.DomainPerformanceResponse;
 import com.ccat.api.dto.response.QuestionResponse;
+import com.ccat.api.dto.response.QuestionReviewResponse;
 import com.ccat.api.dto.response.ResponseSubmitResponse;
 import com.ccat.api.dto.response.TestResultResponse;
 import com.ccat.api.dto.response.TestSessionResponse;
@@ -21,6 +22,7 @@ import com.ccat.api.model.entity.*;
 import com.ccat.api.model.enums.*;
 import com.ccat.api.repository.*;
 import com.ccat.api.service.TestSessionService;
+import com.ccat.api.service.UserAdviceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +55,7 @@ public class TestSessionServiceImpl implements TestSessionService {
     private final DomainPerformanceMapper     domainPerfMapper;
     private final QuestionMapper              questionMapper;
     private final AnswerMapper                answerMapper;
+    private final UserAdviceService           userAdviceService;
 
     // Test lifecycle.
 
@@ -169,6 +172,8 @@ public class TestSessionServiceImpl implements TestSessionService {
         // Persist strongest and weakest domains after ranking.
         resultRepository.save(savedResult);
 
+        userAdviceService.generateForResult(savedResult, savedPerfs);
+
         List<DomainPerformanceResponse> perfResponses = savedPerfs.stream()
                 .map(domainPerfMapper::toResponse).toList();
 
@@ -226,6 +231,45 @@ public class TestSessionServiceImpl implements TestSessionService {
                     return questionMapper.toResponseWithAnswers(q, answers);
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<QuestionReviewResponse> getReview(Long sessionId, String userEmail) {
+        TestSession session = getSessionOwnedBy(sessionId, userEmail);
+        if (session.getEmStatus() != SessionStatus.SUBMITTED) {
+            throw new IllegalStateException("Review is only available after the session has been submitted");
+        }
+
+        List<Response> responses = responseRepository.findBySessionLgIdForReview(sessionId);
+
+        return responses.stream().map(r -> {
+            Question q = r.getQuestion();
+            var answers = answerRepository.findByQuestionLgIdOrderByIntSortOrderAsc(q.getLgId())
+                    .stream().map(answerMapper::toResponse).toList();
+            Answer chosen = r.getAnswer();
+            return new QuestionReviewResponse(
+                    r.getIntDisplayOrder(),
+                    q.getLgId(),
+                    q.getStrQuestionText(),
+                    q.getStrImageUrl(),
+                    q.getStrImageAlt(),
+                    q.getEmContentType(),
+                    q.getEmDifficulty(),
+                    q.getEmQuestionType(),
+                    q.getDomain().getStrDomainCode(),
+                    q.getStrExplanation(),
+                    q.getStrHint(),
+                    answers,
+                    chosen != null ? chosen.getLgId() : null,
+                    chosen != null ? chosen.getStrAnswerLabel() : null,
+                    r.getBIsCorrect(),
+                    r.getBWasSkipped(),
+                    r.getBWasChanged(),
+                    r.getIntChangedCount(),
+                    r.getIntResponseTimeMs()
+            );
+        }).toList();
     }
 
     private List<Long> parseQuestionOrder(String json) {
