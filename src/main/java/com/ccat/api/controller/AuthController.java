@@ -14,10 +14,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -151,6 +153,23 @@ public class AuthController {
             @AuthenticationPrincipal UserDetails principal,
             @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(authService.updateMe(principal.getUsername(), request));
+    }
+
+    @Operation(summary = "Upload profile image",
+               description = "Uploads a new profile photo for the authenticated user and replaces the previous one if present.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile image updated",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid file",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "401", description = "Not authenticated",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> uploadProfileImage(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(authService.uploadProfileImage(principal.getUsername(), file));
     }
 
     @Operation(summary = "Change password",

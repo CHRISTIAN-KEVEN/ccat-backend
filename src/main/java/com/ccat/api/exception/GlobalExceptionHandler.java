@@ -71,6 +71,11 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(SessionExpiredException.class)
+    public ProblemDetail handleSessionExpired(SessionExpiredException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(FreeTestAlreadyUsedException.class)
     public ProblemDetail handleFreeTestUsed(FreeTestAlreadyUsedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());

@@ -33,6 +33,9 @@ public class User {
     @Column(name = "str_last_name", length = 100)
     private String strLastName;
 
+    @Column(name = "str_profile_image_url", length = 500)
+    private String strProfileImageUrl;
+
     @Column(name = "str_oauth_provider", length = 50)
     private String strOauthProvider;
 

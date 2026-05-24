@@ -24,6 +24,9 @@ public record UserResponse(
         @Schema(description = "Last name", example = "Dupont")
         String strLastName,
 
+        @Schema(description = "Public profile photo URL", example = "https://example.com/avatar.jpg")
+        String strProfileImageUrl,
+
         @Schema(description = "Role assigned to this account")
         UserRole emRole,
 

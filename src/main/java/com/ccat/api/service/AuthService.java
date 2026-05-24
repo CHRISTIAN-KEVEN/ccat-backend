@@ -14,6 +14,7 @@ import com.ccat.api.repository.UserRepository;
 import com.ccat.api.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,8 +22,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -32,6 +40,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final long MAX_PROFILE_IMAGE_BYTES = 5L * 1024 * 1024;
+    private static final String PROFILE_IMAGE_PATH = "/uploads/profile-images/";
+
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     @Transactional
     public UserResponse updateMe(String email, UserUpdateRequest request) {
         User user = userRepository.findByStrEmail(email).orElseThrow();
@@ -40,6 +54,38 @@ public class AuthService {
         if (request.strTimezone()  != null) user.setStrTimezone(request.strTimezone());
         if (request.strLocale()    != null) user.setStrLocale(request.strLocale());
         return userMapper.toResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserResponse uploadProfileImage(String email, MultipartFile file) {
+        User user = userRepository.findByStrEmail(email).orElseThrow();
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Profile image file is required");
+        }
+        if (file.getSize() > MAX_PROFILE_IMAGE_BYTES) {
+            throw new IllegalArgumentException("Profile image must be 5 MB or smaller");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Profile image must be an image file");
+        }
+
+        String extension = extensionFor(contentType, file.getOriginalFilename());
+        String fileName = "user_" + user.getLgId() + "_" + UUID.randomUUID() + extension;
+        Path uploadDir = Paths.get("uploads", "profile-images").toAbsolutePath().normalize();
+
+        try {
+            Files.createDirectories(uploadDir);
+            Path target = uploadDir.resolve(fileName);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            deleteStoredProfileImage(user.getStrProfileImageUrl());
+            user.setStrProfileImageUrl(normalizeBaseUrl(baseUrl) + PROFILE_IMAGE_PATH + fileName);
+            return userMapper.toResponse(userRepository.save(user));
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store profile image", e);
+        }
     }
 
     private static final int OTP_TTL_MINUTES            = 60;
@@ -309,5 +355,38 @@ public class AuthService {
         user.setDtResetTokenExpires(LocalDateTime.now().plusMinutes(OTP_TTL_MINUTES));
         userRepository.save(user);
         return otp;
+    }
+
+    private String normalizeBaseUrl(String url) {
+        return url != null && url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
+    private String extensionFor(String contentType, String originalFilename) {
+        return switch (contentType.toLowerCase()) {
+            case "image/jpeg", "image/jpg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/gif" -> ".gif";
+            case "image/webp" -> ".webp";
+            default -> {
+                if (originalFilename != null && originalFilename.contains(".")) {
+                    yield originalFilename.substring(originalFilename.lastIndexOf('.')).toLowerCase();
+                }
+                throw new IllegalArgumentException("Unsupported image format");
+            }
+        };
+    }
+
+    private void deleteStoredProfileImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return;
+
+        try {
+            String path = URI.create(imageUrl).getPath();
+            if (path == null || !path.contains(PROFILE_IMAGE_PATH)) return;
+            String filename = path.substring(path.lastIndexOf('/') + 1);
+            Path target = Paths.get("uploads", "profile-images", filename).toAbsolutePath().normalize();
+            Files.deleteIfExists(target);
+        } catch (Exception ignored) {
+            // Ignore cleanup failures — they must not block profile updates.
+        }
     }
 }

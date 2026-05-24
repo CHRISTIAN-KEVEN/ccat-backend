@@ -11,6 +11,7 @@ import com.ccat.api.dto.response.TestSessionResponse;
 import com.ccat.api.exception.FreeTestAlreadyUsedException;
 import com.ccat.api.exception.QuestionNotFoundException;
 import com.ccat.api.exception.SessionAlreadySubmittedException;
+import com.ccat.api.exception.SessionExpiredException;
 import com.ccat.api.exception.TestSessionNotFoundException;
 import com.ccat.api.mapper.AnswerMapper;
 import com.ccat.api.mapper.DomainPerformanceMapper;
@@ -99,7 +100,14 @@ public class TestSessionServiceImpl implements TestSessionService {
     @Override
     @Transactional
     public ResponseSubmitResponse submitResponse(Long sessionId, ResponseSubmitRequest request, String userEmail) {
-        TestSession session = getActiveSession(sessionId, userEmail);
+        TestSession session = getSessionOwnedBy(sessionId, userEmail);
+        if (session.getEmStatus() != SessionStatus.ACTIVE) {
+            throw new SessionAlreadySubmittedException(sessionId);
+        }
+
+        if (expireIfNeeded(session, LocalDateTime.now())) {
+            throw new SessionExpiredException(sessionId);
+        }
 
         Question question = questionRepository.findById(request.lgQuestionId())
                 .orElseThrow(() -> new QuestionNotFoundException(String.valueOf(request.lgQuestionId())));
@@ -152,72 +160,58 @@ public class TestSessionServiceImpl implements TestSessionService {
     @Override
     @Transactional
     public TestResultResponse finish(Long sessionId, boolean submittedByTimer, String userEmail) {
-        TestSession session = getActiveSession(sessionId, userEmail);
-
+        TestSession session = getSessionOwnedBy(sessionId, userEmail);
         LocalDateTime now = LocalDateTime.now();
-        session.setEmStatus(SessionStatus.SUBMITTED);
-        session.setDtSubmitted(now);
-        session.setBSubmittedByTimer(submittedByTimer);
-        sessionRepository.save(session);
 
-        List<Response> responses = responseRepository.findBySessionLgId(sessionId);
+        if (session.getEmStatus() == SessionStatus.ACTIVE) {
+            boolean timerTriggered = submittedByTimer || isExpired(session, now);
+            LocalDateTime submittedAt = timerTriggered ? minDateTime(now, session.getDtExpires()) : now;
+            return finalizeSession(session, timerTriggered, submittedAt);
+        }
 
-        // Domain ranking updates the result entity.
-        TestResult result = buildResult(session, responses, now);
-        TestResult savedResult = resultRepository.save(result);
-
-        List<DomainPerformance> performances = buildDomainPerformances(session, savedResult, responses);
-        List<DomainPerformance> savedPerfs = domainPerfRepository.saveAll(performances);
-
-        // Persist strongest and weakest domains after ranking.
-        resultRepository.save(savedResult);
-
-        userAdviceService.generateForResult(savedResult, savedPerfs);
-
-        List<DomainPerformanceResponse> perfResponses = savedPerfs.stream()
-                .map(domainPerfMapper::toResponse).toList();
-
-        return resultMapper.toResponse(savedResult, perfResponses);
+        return getStoredResult(sessionId);
     }
 
     /**
      * Returns the result of a submitted session.
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public TestResultResponse getResult(Long sessionId, String userEmail) {
-        // Ownership check only.
-        getSessionOwnedBy(sessionId, userEmail);
-
-        TestResult result = resultRepository.findBySessionLgId(sessionId)
-                .orElseThrow(() -> new IllegalStateException("Results not yet available for session " + sessionId));
-
-        List<DomainPerformanceResponse> perfs = domainPerfRepository.findByResultLgId(result.getLgId())
-                .stream().map(domainPerfMapper::toResponse).toList();
-
-        return resultMapper.toResponse(result, perfs);
+        TestSession session = getSessionOwnedBy(sessionId, userEmail);
+        if (session.getEmStatus() == SessionStatus.ACTIVE && expireIfNeeded(session, LocalDateTime.now())) {
+            return getStoredResult(sessionId);
+        }
+        return getStoredResult(sessionId);
     }
 
     /** Returns session details. */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public TestSessionResponse getById(Long sessionId, String userEmail) {
-        return sessionMapper.toResponse(getSessionOwnedBy(sessionId, userEmail));
+        TestSession session = getSessionOwnedBy(sessionId, userEmail);
+        expireIfNeeded(session, LocalDateTime.now());
+        return sessionMapper.toResponse(session);
     }
 
     /** Returns the user's sessions from newest to oldest. */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<TestSessionResponse> getMyHistory(String userEmail) {
         User user = userRepository.findByStrEmail(userEmail).orElseThrow();
-        return sessionRepository.findByUserLgIdOrderByDtStartedDesc(user.getLgId())
-                .stream().map(sessionMapper::toResponse).toList();
+        List<TestSession> sessions = sessionRepository.findByUserLgIdOrderByDtStartedDesc(user.getLgId());
+        LocalDateTime now = LocalDateTime.now();
+        sessions.forEach(session -> expireIfNeeded(session, now));
+        return sessions.stream().map(sessionMapper::toResponse).toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<QuestionResponse> getSessionQuestions(Long sessionId, String userEmail) {
         TestSession session = getSessionOwnedBy(sessionId, userEmail);
+        if (expireIfNeeded(session, LocalDateTime.now()) || session.getEmStatus() != SessionStatus.ACTIVE) {
+            throw new SessionExpiredException(sessionId);
+        }
         List<Long> ids = parseQuestionOrder(session.getStrQuestionOrder());
         List<Question> questions = questionRepository.findAllById(ids);
         Map<Long, Question> byId = questions.stream()
@@ -501,6 +495,67 @@ public class TestSessionServiceImpl implements TestSessionService {
             throw new SessionAlreadySubmittedException(sessionId);
         }
         return session;
+    }
+
+    private boolean isExpired(TestSession session, LocalDateTime now) {
+        return session.getDtExpires() != null && !session.getDtExpires().isAfter(now);
+    }
+
+    private boolean expireIfNeeded(TestSession session, LocalDateTime now) {
+        if (session.getEmStatus() != SessionStatus.ACTIVE || !isExpired(session, now)) {
+            return false;
+        }
+        finalizeSession(session, true, minDateTime(now, session.getDtExpires()));
+        return true;
+    }
+
+    private LocalDateTime minDateTime(LocalDateTime left, LocalDateTime right) {
+        if (left == null) return right;
+        if (right == null) return left;
+        return left.isBefore(right) ? left : right;
+    }
+
+    private TestResultResponse finalizeSession(TestSession session, boolean submittedByTimer, LocalDateTime submittedAt) {
+        if (session.getEmStatus() != SessionStatus.ACTIVE) {
+            return getStoredResult(session.getLgId());
+        }
+
+        session.setEmStatus(SessionStatus.SUBMITTED);
+        session.setDtSubmitted(submittedAt != null ? submittedAt : LocalDateTime.now());
+        session.setBSubmittedByTimer(submittedByTimer);
+        sessionRepository.save(session);
+
+        Optional<TestResult> existing = resultRepository.findBySessionLgId(session.getLgId());
+        if (existing.isPresent()) {
+            return toResultResponse(existing.get());
+        }
+
+        List<Response> responses = responseRepository.findBySessionLgId(session.getLgId());
+
+        TestResult result = buildResult(session, responses, session.getDtSubmitted());
+        TestResult savedResult = resultRepository.save(result);
+
+        List<DomainPerformance> performances = buildDomainPerformances(session, savedResult, responses);
+        List<DomainPerformance> savedPerfs = domainPerfRepository.saveAll(performances);
+
+        resultRepository.save(savedResult);
+        userAdviceService.generateForResult(savedResult, savedPerfs);
+
+        List<DomainPerformanceResponse> perfResponses = savedPerfs.stream()
+                .map(domainPerfMapper::toResponse).toList();
+        return resultMapper.toResponse(savedResult, perfResponses);
+    }
+
+    private TestResultResponse getStoredResult(Long sessionId) {
+        TestResult result = resultRepository.findBySessionLgId(sessionId)
+                .orElseThrow(() -> new IllegalStateException("Results not yet available for session " + sessionId));
+        return toResultResponse(result);
+    }
+
+    private TestResultResponse toResultResponse(TestResult result) {
+        List<DomainPerformanceResponse> perfs = domainPerfRepository.findByResultLgId(result.getLgId())
+                .stream().map(domainPerfMapper::toResponse).toList();
+        return resultMapper.toResponse(result, perfs);
     }
 
     /**
