@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.multipart.MultipartFile;
@@ -144,7 +145,7 @@ public class AuthController {
     })
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal UserDetails principal) {
-        return ResponseEntity.ok(authService.getMe(principal.getUsername()));
+        return ResponseEntity.ok(authService.getMe(requirePrincipal(principal)));
     }
 
     @Operation(summary = "Update profile")
@@ -152,7 +153,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> updateMe(
             @AuthenticationPrincipal UserDetails principal,
             @RequestBody UserUpdateRequest request) {
-        return ResponseEntity.ok(authService.updateMe(principal.getUsername(), request));
+        return ResponseEntity.ok(authService.updateMe(requirePrincipal(principal), request));
     }
 
     @Operation(summary = "Upload profile image",
@@ -169,7 +170,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> uploadProfileImage(
             @AuthenticationPrincipal UserDetails principal,
             @RequestPart("file") MultipartFile file) {
-        return ResponseEntity.ok(authService.uploadProfileImage(principal.getUsername(), file));
+        return ResponseEntity.ok(authService.uploadProfileImage(requirePrincipal(principal), file));
     }
 
     @Operation(summary = "Change password",
@@ -183,7 +184,7 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(
             @AuthenticationPrincipal UserDetails principal,
             @Valid @RequestBody ChangePasswordRequest request) {
-        authService.changePassword(principal.getUsername(), request);
+        authService.changePassword(requirePrincipal(principal), request);
         return ResponseEntity.noContent().build();
     }
 
@@ -193,5 +194,12 @@ public class AuthController {
     public ResponseEntity<Void> logout(@AuthenticationPrincipal UserDetails principal) {
         if (principal != null) authService.logout(principal.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    private String requirePrincipal(UserDetails principal) {
+        if (principal == null) {
+            throw new InsufficientAuthenticationException("Authentication is required");
+        }
+        return principal.getUsername();
     }
 }

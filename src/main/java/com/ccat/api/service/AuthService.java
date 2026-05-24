@@ -10,6 +10,7 @@ import com.ccat.api.exception.InvalidOtpException;
 import com.ccat.api.exception.InvalidTokenException;
 import com.ccat.api.mapper.UserMapper;
 import com.ccat.api.model.entity.User;
+import com.ccat.api.model.enums.UserStatus;
 import com.ccat.api.repository.UserRepository;
 import com.ccat.api.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import org.springframework.http.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -182,6 +185,7 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.strEmail(), request.strPassword()));
 
         User user = userRepository.findByStrEmail(request.strEmail()).orElseThrow();
+        assertUserCanAuthenticate(user);
         user.setIntLoginCount(user.getIntLoginCount() + 1);
         user.setDtLastLogin(LocalDateTime.now());
 
@@ -201,6 +205,8 @@ public class AuthService {
     public AuthResponse refresh(RefreshTokenRequest request) {
         User user = userRepository.findByStrRefreshToken(request.strRefreshToken())
                 .orElseThrow(InvalidTokenException::new);
+
+        assertUserCanAuthenticate(user);
 
         if (user.getDtRefreshTokenExpires() == null
                 || user.getDtRefreshTokenExpires().isBefore(LocalDateTime.now())) {
@@ -318,6 +324,7 @@ public class AuthService {
             user.setStrOauthId(googleId);
             user.setBEmailVerified(true);
         }
+        assertUserCanAuthenticate(user);
         user.setIntLoginCount(user.getIntLoginCount() + 1);
         user.setDtLastLogin(LocalDateTime.now());
 
@@ -387,6 +394,15 @@ public class AuthService {
             Files.deleteIfExists(target);
         } catch (Exception ignored) {
             // Ignore cleanup failures — they must not block profile updates.
+        }
+    }
+
+    private void assertUserCanAuthenticate(User user) {
+        if (user.getEmStatus() == UserStatus.SUSPENDED) {
+            throw new LockedException("Your account has been suspended");
+        }
+        if (user.getEmStatus() == UserStatus.DELETED) {
+            throw new DisabledException("Your account has been banned");
         }
     }
 }
