@@ -124,6 +124,10 @@ public class TestSessionServiceImpl implements TestSessionService {
         Response response;
 
         if (existing.isPresent()) {
+            // Backtracking disabled — reject re-submission of already answered questions.
+            if (!Boolean.TRUE.equals(session.getBAllowBacktrack())) {
+                throw new IllegalStateException("Backtracking is not allowed for this session");
+            }
             // Update an existing answer.
             response = existing.get();
             boolean wasSkipped = response.getBWasSkipped();

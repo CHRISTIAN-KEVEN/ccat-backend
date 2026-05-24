@@ -24,6 +24,7 @@ public class TestSessionMapper {
                 session.getEmSessionType(),
                 session.getEmStatus(),
                 session.getBIsFreeTest(),
+                Boolean.TRUE.equals(session.getBAllowBacktrack()),
                 session.getIntQuestionCount(),
                 session.getIntDurationSeconds(),
                 session.getEmDomainRatio(),
@@ -44,6 +45,7 @@ public class TestSessionMapper {
         session.setEmStatus(SessionStatus.ACTIVE);
         // Denormalized to speed up FREE_TEST_POLICY count query without joining on em_session_type
         session.setBIsFreeTest(request.emSessionType().name().equals("FREE_DIAGNOSTIC"));
+        session.setBAllowBacktrack(Boolean.TRUE.equals(request.bAllowBacktrack()));
         session.setStrEligibilityVersion(request.strEligibilityVersion() != null ? request.strEligibilityVersion() : "EVER_v1");
         session.setIntQuestionCount(50);
         session.setIntDurationSeconds(900);

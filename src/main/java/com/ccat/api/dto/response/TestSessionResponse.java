@@ -12,6 +12,7 @@ public record TestSessionResponse(
         SessionType emSessionType,
         SessionStatus emStatus,
         Boolean bIsFreeTest,
+        Boolean bAllowBacktrack,
         Integer intQuestionCount,
         Integer intDurationSeconds,
         String emDomainRatio,

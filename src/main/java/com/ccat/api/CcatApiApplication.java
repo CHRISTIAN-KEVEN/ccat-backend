@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.UUID;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @Slf4j
 @SpringBootApplication
 @EnableAsync
+@EnableScheduling
 @EnableConfigurationProperties(JwtProperties.class)
 public class CcatApiApplication {
 

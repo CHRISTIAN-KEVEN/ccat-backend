@@ -40,6 +40,25 @@ public class EmailService {
     }
 
     @Async
+    public void sendWelcomeEmail(String to, String firstName) {
+        Context ctx = new Context(Locale.ENGLISH);
+        ctx.setVariable("to", to);
+        ctx.setVariable("firstName", firstName != null && !firstName.isBlank() ? firstName : "there");
+        ctx.setVariable("baseUrl", baseUrl);
+        sendHtml(to, "Welcome to CCAT Pro 🎉", "email/welcome", ctx);
+    }
+
+    @Async
+    public void sendReminderEmail(String to, String firstName, int daysSince) {
+        Context ctx = new Context(Locale.ENGLISH);
+        ctx.setVariable("to", to);
+        ctx.setVariable("firstName", firstName != null && !firstName.isBlank() ? firstName : "there");
+        ctx.setVariable("daysSince", daysSince);
+        ctx.setVariable("baseUrl", baseUrl);
+        sendHtml(to, "Your CCAT practice is waiting 🎯", "email/reminder", ctx);
+    }
+
+    @Async
     public void sendOtp(String to, String otp) {
         Context ctx = new Context(Locale.ENGLISH);
         ctx.setVariable("to", to);

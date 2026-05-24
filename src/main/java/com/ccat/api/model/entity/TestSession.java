@@ -53,6 +53,9 @@ public class TestSession {
     @Column(name = "em_difficulty_mix", nullable = false, length = 50)
     private String emDifficultyMix = "30-50-20";
 
+    @Column(name = "b_allow_backtrack", nullable = false)
+    private Boolean bAllowBacktrack = false;
+
     @Column(name = "b_submitted_by_timer", nullable = false)
     private Boolean bSubmittedByTimer = false;
 

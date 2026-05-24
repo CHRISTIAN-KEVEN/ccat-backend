@@ -38,6 +38,15 @@ public class BookmarkController {
         return ResponseEntity.ok(bookmarkService.getMyBookmarks(principal.getUsername()));
     }
 
+    @Operation(summary = "Add or update a personal note on a bookmarked question")
+    @PatchMapping("/{questionId}/note")
+    public ResponseEntity<BookmarkResponse> updateNote(
+            @PathVariable Long questionId,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(bookmarkService.updateNote(questionId, body.get("strNote"), principal.getUsername()));
+    }
+
     @Operation(summary = "Get the set of bookmarked question IDs (for highlighting in UI)")
     @GetMapping("/ids")
     public ResponseEntity<Set<Long>> getMyBookmarkedIds(

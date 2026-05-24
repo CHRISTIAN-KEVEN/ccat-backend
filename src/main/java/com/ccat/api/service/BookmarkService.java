@@ -9,4 +9,5 @@ public interface BookmarkService {
     boolean toggle(Long questionId, String userEmail);
     List<BookmarkResponse> getMyBookmarks(String userEmail);
     Set<Long> getMyBookmarkedIds(String userEmail);
+    BookmarkResponse updateNote(Long questionId, String note, String userEmail);
 }

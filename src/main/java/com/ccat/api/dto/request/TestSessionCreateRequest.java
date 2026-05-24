@@ -7,5 +7,6 @@ public record TestSessionCreateRequest(
         @NotNull SessionType emSessionType,
         String strEligibilityVersion,
         String emDomainRatio,
-        String emDifficultyMix
+        String emDifficultyMix,
+        Boolean bAllowBacktrack
 ) {}

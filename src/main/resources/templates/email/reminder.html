@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your CCAT practice is waiting</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f2ef;font-family:Arial,Helvetica,sans-serif;">
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f2ef;">
+    <tr>
+      <td align="center" style="padding:32px 16px 0;">
+
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-bottom:16px;text-align:center;">
+              <span style="font-size:28px;font-weight:700;color:#0077B5;letter-spacing:1px;">CCAT</span>
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" width="540" cellpadding="0" cellspacing="0"
+               style="max-width:540px;width:100%;background:#ffffff;border-radius:2px;border:1px solid #e0e0e0;">
+          <tr>
+            <td style="padding:40px 40px 32px;">
+
+              <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#000000;line-height:1.3;">
+                Hey <span th:text="${firstName}">there</span>, your score is waiting 🎯
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#525252;line-height:1.7;">
+                It's been <strong th:text="${daysSince}">a few</strong> days since your last practice session.
+                Consistency is the #1 predictor of CCAT success — even 15 minutes today keeps your skills sharp.
+              </p>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:32px;width:100%;">
+                <tr>
+                  <td style="background:#fff8f0;border:1px solid #ffe4c4;border-radius:2px;padding:16px 24px;">
+                    <p style="margin:0;font-size:13px;color:#92400e;line-height:1.7;">
+                      💡 <strong>Quick tip:</strong> Candidates who practice at least every 3 days score
+                      an average of <strong>8 points higher</strong> than those who don't.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background-color:#0077B5;border-radius:2px;">
+                    <a th:href="${baseUrl + '/dashboard/test'}" href="#"
+                       style="display:inline-block;padding:14px 32px;font-size:14px;font-weight:700;
+                              color:#ffffff;text-decoration:none;letter-spacing:0.5px;">
+                      Practice Now →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0;font-size:13px;color:#999999;line-height:1.5;">
+                Your dashboard and progress are ready when you are.
+              </p>
+
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #e0e0e0;margin:0;"/>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:20px 40px;">
+              <p style="margin:0;font-size:12px;color:#999999;line-height:1.5;">
+                You received this because you have an active CCAT account.
+                To stop receiving reminders, simply log in and continue practicing.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+
+    <tr>
+      <td align="center" style="padding:24px 16px 40px;">
+        <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="max-width:540px;">
+          <tr>
+            <td style="text-align:center;">
+              <p style="margin:0 0 8px;font-size:12px;color:#999999;">© 2025 CCAT. All rights reserved.</p>
+              <p style="margin:0;font-size:12px;color:#999999;">
+                Sent to <a th:href="'mailto:' + ${to}" th:text="${to}" style="color:#0077B5;text-decoration:none;">you</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

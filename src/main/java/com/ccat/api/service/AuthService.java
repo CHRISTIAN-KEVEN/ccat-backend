@@ -144,6 +144,8 @@ public class AuthService {
         user.setStrVerificationToken(null);
         user.setDtVerificationTokenExpires(null);
         userRepository.save(user);
+        // @Async — welcome email fires after transaction commits
+        emailService.sendWelcomeEmail(user.getStrEmail(), user.getStrFirstName());
     }
 
     @Transactional

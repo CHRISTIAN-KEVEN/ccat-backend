@@ -76,6 +76,27 @@ public class BookmarkServiceImpl implements BookmarkService {
     }
 
     @Override
+    @Transactional
+    public BookmarkResponse updateNote(Long questionId, String note, String userEmail) {
+        var user = userRepository.findByStrEmail(userEmail).orElseThrow();
+        var bookmark = bookmarkRepository.findByUserLgIdAndQuestionLgId(user.getLgId(), questionId)
+                .orElseThrow(() -> new QuestionNotFoundException("Bookmark not found for question id=" + questionId));
+
+        bookmark.setStrNote(note == null || note.isBlank() ? null : note.trim());
+        bookmarkRepository.save(bookmark);
+
+        var q = bookmark.getQuestion();
+        List<AnswerResponse> answers = answerRepository.findByQuestionLgIdOrderByIntSortOrderAsc(q.getLgId())
+                .stream().map(answerMapper::toResponse).toList();
+        return new BookmarkResponse(
+                bookmark.getLgId(), q.getLgId(), q.getStrQuestionText(), q.getStrImageUrl(),
+                q.getDomain().getStrDomainCode(), q.getEmDifficulty().name(),
+                q.getEmQuestionType().name(), q.getStrExplanation(),
+                bookmark.getStrNote(), true, bookmark.getDtCreated(), answers
+        );
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Set<Long> getMyBookmarkedIds(String userEmail) {
         var user = userRepository.findByStrEmail(userEmail).orElseThrow();
