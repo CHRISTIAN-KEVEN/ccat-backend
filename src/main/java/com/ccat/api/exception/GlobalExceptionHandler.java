@@ -72,6 +72,11 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(UserAdviceNotFoundException.class)
+    public ProblemDetail handleAdviceNotFound(UserAdviceNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(SessionAlreadySubmittedException.class)
     public ProblemDetail handleSessionClosed(SessionAlreadySubmittedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());

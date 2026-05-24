@@ -2,6 +2,8 @@ package com.ccat.api.service.impl;
 
 import com.ccat.api.dto.request.UserAdviceFeedbackRequest;
 import com.ccat.api.dto.response.UserAdviceResponse;
+import com.ccat.api.exception.TestSessionNotFoundException;
+import com.ccat.api.exception.UserAdviceNotFoundException;
 import com.ccat.api.mapper.UserAdviceMapper;
 import com.ccat.api.model.entity.AdviceCard;
 import com.ccat.api.model.entity.DomainPerformance;
@@ -83,9 +85,9 @@ public class UserAdviceServiceImpl implements UserAdviceService {
     @Transactional(readOnly = true)
     public List<UserAdviceResponse> getBySession(Long sessionId, String userEmail) {
         var session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+                .orElseThrow(() -> new TestSessionNotFoundException(sessionId));
         if (!session.getUser().getStrEmail().equals(userEmail)) {
-            throw new IllegalArgumentException("Session not found: " + sessionId);
+            throw new TestSessionNotFoundException(sessionId);
         }
         TestResult result = testResultRepository.findBySessionLgId(sessionId)
                 .orElseThrow(() -> new IllegalStateException("Results not available yet for session " + sessionId));
@@ -174,9 +176,10 @@ public class UserAdviceServiceImpl implements UserAdviceService {
 
     private UserAdvice getOwnedAdvice(Long userAdviceId, String userEmail) {
         UserAdvice advice = userAdviceRepository.findById(userAdviceId)
-                .orElseThrow(() -> new IllegalArgumentException("Advice not found: " + userAdviceId));
+                .orElseThrow(() -> new UserAdviceNotFoundException(userAdviceId));
         if (!advice.getUser().getStrEmail().equals(userEmail)) {
-            throw new IllegalArgumentException("Advice not found: " + userAdviceId);
+            // Mask existence of other users' data — same 404 as "not found"
+            throw new UserAdviceNotFoundException(userAdviceId);
         }
         return advice;
     }
