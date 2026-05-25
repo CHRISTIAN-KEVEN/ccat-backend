@@ -28,15 +28,15 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests unitaires pour TestSessionServiceImpl.
- * Teste la logique de calcul des scores, la distribution des questions
- * et la gestion du cycle de vie des sessions.
+ * Unit tests for TestSessionServiceImpl.
+ * Tests score calculation logic, question distribution,
+ * and session lifecycle handling.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("TestSessionServiceImpl — Tests Unitaires")
+@DisplayName("TestSessionServiceImpl - Unit Tests")
 class TestSessionServiceImplTest {
 
-    // ── Mocks ────────────────────────────────────────────────────────────────
+    // Mocks
 
     @Mock TestSessionRepository    sessionRepository;
     @Mock TestResultRepository     resultRepository;
@@ -57,7 +57,7 @@ class TestSessionServiceImplTest {
     @InjectMocks
     TestSessionServiceImpl service;
 
-    // ── Fixtures ─────────────────────────────────────────────────────────────
+    // Fixtures
 
     private User user;
     private TestSession session;
@@ -85,15 +85,15 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Démarrage d'une session (start)
+    // Session start
     // =========================================================================
 
     @Nested
-    @DisplayName("start() — Démarrage d'une session")
+    @DisplayName("start() - Starts a session")
     class StartTests {
 
         @Test
-        @DisplayName("Lève FreeTestAlreadyUsedException si le test gratuit est déjà utilisé")
+        @DisplayName("Throws FreeTestAlreadyUsedException when the free test was already used")
         void start_freeDiagnostic_alreadyUsed_throwsException() {
             // Arrange
             var request = new com.ccat.api.dto.request.TestSessionCreateRequest(
@@ -107,7 +107,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Crée la session avec les valeurs par défaut si aucun ratio fourni")
+        @DisplayName("Creates the session with default values when no ratio is provided")
         void start_noRatioProvided_usesDefaults() {
             // Arrange
             var request = new com.ccat.api.dto.request.TestSessionCreateRequest(
@@ -140,15 +140,15 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Soumission d'une réponse (submitResponse)
+    // Submit response
     // =========================================================================
 
     @Nested
-    @DisplayName("submitResponse() — Soumission des réponses")
+    @DisplayName("submitResponse() - Submits responses")
     class SubmitResponseTests {
 
         @Test
-        @DisplayName("Lève SessionAlreadySubmittedException si la session est déjà soumise")
+        @DisplayName("Throws SessionAlreadySubmittedException when the session is already submitted")
         void submitResponse_sessionAlreadySubmitted_throwsException() {
             // Arrange
             session.setEmStatus(SessionStatus.SUBMITTED);
@@ -163,14 +163,14 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Lève SessionExpiredException si la session est expirée")
+        @DisplayName("Throws SessionExpiredException when the session is expired")
         void submitResponse_sessionExpired_throwsException() {
             // Arrange
-            session.setDtExpires(LocalDateTime.now().minusMinutes(1)); // expirée
+            session.setDtExpires(LocalDateTime.now().minusMinutes(1)); // expired
             when(sessionRepository.findById(10L)).thenReturn(Optional.of(session));
             when(resultRepository.findBySessionLgId(10L)).thenReturn(Optional.empty());
 
-            // Pour finalizeSession lors de l'expiration
+            // For finalizeSession during expiration handling
             when(responseRepository.findBySessionLgId(10L)).thenReturn(List.of());
             when(resultRepository.save(any())).thenReturn(new TestResult());
             when(domainPerfRepository.saveAll(any())).thenReturn(List.of());
@@ -186,7 +186,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Refuse le renvoi d'une réponse si le backtrack est désactivé")
+        @DisplayName("Rejects resubmitting a response when backtracking is disabled")
         void submitResponse_backtrackDisabled_existingResponse_throwsException() {
             // Arrange
             session.setBAllowBacktrack(false);
@@ -214,16 +214,16 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Calcul du percentile (estimatePercentile)
+    // Percentile calculation
     // =========================================================================
 
     @Nested
-    @DisplayName("estimatePercentile() — Estimation du rang")
+    @DisplayName("estimatePercentile() - Rank estimation")
     class PercentileTests {
 
         /**
-         * On teste via finish() qui appelle buildResult() → estimatePercentile().
-         * On vérifie indirectement en inspectant le TestResult sauvegardé.
+         * Tested through finish(), which calls buildResult() -> estimatePercentile().
+         * Verified indirectly by inspecting the saved TestResult.
          */
         @ParameterizedTest(name = "score={0} → percentile≥{1}")
         @CsvSource({
@@ -237,9 +237,9 @@ class TestSessionServiceImplTest {
             "12, 20",
             "5,  10"
         })
-        @DisplayName("Retourne le bon percentile selon le score")
+        @DisplayName("Returns the correct percentile for each score")
         void estimatePercentile_variousScores(int score, int expectedPercentile) {
-            // On accède à la méthode privée via reflection pour tester directement
+            // Access the private method via reflection for direct testing
             try {
                 var method = TestSessionServiceImpl.class
                         .getDeclaredMethod("estimatePercentile", int.class);
@@ -247,21 +247,21 @@ class TestSessionServiceImplTest {
                 int result = (int) method.invoke(service, score);
                 assertThat(result).isEqualTo(expectedPercentile);
             } catch (Exception e) {
-                fail("Impossible d'accéder à estimatePercentile: " + e.getMessage());
+                fail("Unable to access estimatePercentile: " + e.getMessage());
             }
         }
     }
 
     // =========================================================================
-    // Distribution des questions (distributeQuestions)
+    // Question distribution
     // =========================================================================
 
     @Nested
-    @DisplayName("distributeQuestions() — Distribution par ratio")
+    @DisplayName("distributeQuestions() - Distribution by ratio")
     class DistributeQuestionsTests {
 
         @Test
-        @DisplayName("40-40-20 sur 50 questions → [20, 20, 10]")
+        @DisplayName("40-40-20 over 50 questions -> [20, 20, 10]")
         void distributeQuestions_40_40_20_returns_20_20_10() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("distributeQuestions", int.class, int[].class);
@@ -278,7 +278,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Ratios à zéro → fallback équitable")
+        @DisplayName("Zero ratios -> even split fallback")
         void distributeQuestions_zeroSum_fallsBackToEvenSplit() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("distributeQuestions", int.class, int[].class);
@@ -287,14 +287,14 @@ class TestSessionServiceImplTest {
             int[] counts = (int[]) method.invoke(service, 50, new int[]{0, 0, 0});
 
             assertThat(counts).hasSize(3);
-            // chaque domaine reçoit 50/3 ≈ 16 questions
+            // each domain receives about 50/3 ~= 16 questions
             for (int c : counts) {
                 assertThat(c).isGreaterThanOrEqualTo(16).isLessThanOrEqualTo(18);
             }
         }
 
         @Test
-        @DisplayName("Le total des questions distribuées doit toujours être égal à 50")
+        @DisplayName("The total distributed questions must always equal 50")
         void distributeQuestions_totalAlways50() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("distributeQuestions", int.class, int[].class);
@@ -308,15 +308,15 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Parsing du ratio (parseRatios)
+    // Ratio parsing
     // =========================================================================
 
     @Nested
-    @DisplayName("parseRatios() — Parsing de la chaîne de ratio")
+    @DisplayName("parseRatios() - Ratio string parsing")
     class ParseRatiosTests {
 
         @Test
-        @DisplayName("Ratio valide '40-40-20' retourne [40, 40, 20]")
+        @DisplayName("Valid ratio '40-40-20' returns [40, 40, 20]")
         void parseRatios_validString_returnsArray() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseRatios", String.class, int.class);
@@ -328,7 +328,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Ratio invalide → fallback avec split équitable")
+        @DisplayName("Invalid ratio -> fallback to even split")
         void parseRatios_invalidString_fallsBack() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseRatios", String.class, int.class);
@@ -345,15 +345,15 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Parsing de l'ordre des questions (parseQuestionOrder)
+    // Question order parsing
     // =========================================================================
 
     @Nested
-    @DisplayName("parseQuestionOrder() — Parsing du JSON des IDs")
+    @DisplayName("parseQuestionOrder() - JSON ID parsing")
     class ParseQuestionOrderTests {
 
         @Test
-        @DisplayName("JSON valide '[1,2,3]' retourne la liste [1, 2, 3]")
+        @DisplayName("Valid JSON '[1,2,3]' returns the list [1, 2, 3]")
         void parseQuestionOrder_validJson_returnsList() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseQuestionOrder", String.class);
@@ -366,7 +366,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("JSON null retourne une liste vide")
+        @DisplayName("Null JSON returns an empty list")
         void parseQuestionOrder_null_returnsEmptyList() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseQuestionOrder", String.class);
@@ -379,7 +379,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("JSON vide '[]' retourne une liste vide")
+        @DisplayName("Empty JSON '[]' returns an empty list")
         void parseQuestionOrder_emptyArray_returnsEmptyList() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseQuestionOrder", String.class);
@@ -392,7 +392,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("JSON malformé retourne une liste vide sans exception")
+        @DisplayName("Malformed JSON returns an empty list without exception")
         void parseQuestionOrder_malformed_returnsEmptyList() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("parseQuestionOrder", String.class);
@@ -406,15 +406,15 @@ class TestSessionServiceImplTest {
     }
 
     // =========================================================================
-    // Détection d'expiration (isExpired)
+    // Expiration detection
     // =========================================================================
 
     @Nested
-    @DisplayName("isExpired() — Détection de session expirée")
+    @DisplayName("isExpired() - Expired session detection")
     class IsExpiredTests {
 
         @Test
-        @DisplayName("Session non expirée → false")
+        @DisplayName("Non-expired session -> false")
         void isExpired_futureExpiry_returnsFalse() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("isExpired", TestSession.class, LocalDateTime.class);
@@ -427,7 +427,7 @@ class TestSessionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Session expirée → true")
+        @DisplayName("Expired session -> true")
         void isExpired_pastExpiry_returnsTrue() throws Exception {
             var method = TestSessionServiceImpl.class
                     .getDeclaredMethod("isExpired", TestSession.class, LocalDateTime.class);

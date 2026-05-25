@@ -18,15 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * Classe de base pour tous les tests d'intégration.
+ * Base class for all integration tests.
  *
- * - Profil "test" → H2 en mémoire (application-test.properties)
- * - @MockitoBean sur JavaMailSender → aucun email réel envoyé
- * - Helpers : création d'utilisateur / domaine / question, génération JWT
+ * - "test" profile -> in-memory H2 (application-test.properties)
+ * - @MockitoBean on JavaMailSender -> no real email is sent
+ * - Helpers: user/domain/question creation and JWT generation
  *
- * Spring Boot 4 notes :
- *   @AutoConfigureMockMvc → org.springframework.boot.webmvc.test.autoconfigure
- *   @MockitoBean          → org.springframework.test.context.bean.override.mockito
+ * Spring Boot 4 notes:
+ *   @AutoConfigureMockMvc -> org.springframework.boot.webmvc.test.autoconfigure
+ *   @MockitoBean          -> org.springframework.test.context.bean.override.mockito
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -39,21 +39,21 @@ public abstract class IntegrationTestBase {
     @Autowired protected ObjectMapper   objectMapper;
     @Autowired protected JwtService     jwtService;
 
-    // ── Repositories pour préparer les données de test ───────────────────────
+    // Repositories used to prepare test data
     @Autowired protected UserRepository     userRepository;
     @Autowired protected DomainRepository   domainRepository;
     @Autowired protected QuestionRepository questionRepository;
     @Autowired protected AnswerRepository   answerRepository;
 
-    // ── Service externe mocké : pas d'envoi réel d'emails ────────────────────
+    // Mocked external service: no real email delivery
     @MockitoBean
     protected JavaMailSender mailSender;
 
     // =========================================================================
-    // Helpers — Création des entités de test
+    // Helpers - test entity creation
     // =========================================================================
 
-    /** Crée un utilisateur standard (rôle USER) vérifié en base de test. */
+    /** Creates a standard verified user (USER role) in the test database. */
     protected User createUser(String email, String password) {
         User user = new User();
         user.setStrUuid(UUID.randomUUID().toString());
@@ -67,7 +67,7 @@ public abstract class IntegrationTestBase {
         return userRepository.save(user);
     }
 
-    /** Crée un utilisateur administrateur (rôle ADMIN) vérifié en base de test. */
+    /** Creates a verified administrator user (ADMIN role) in the test database. */
     protected User createAdmin(String email, String password) {
         User admin = new User();
         admin.setStrUuid(UUID.randomUUID().toString());
@@ -81,12 +81,12 @@ public abstract class IntegrationTestBase {
         return userRepository.save(admin);
     }
 
-    /** Génère un token JWT valide sous la forme "Bearer <token>". */
+    /** Generates a valid JWT token in the form "Bearer <token>". */
     protected String bearerToken(String email) {
         return "Bearer " + jwtService.generateToken(email);
     }
 
-    /** Crée un domaine actif en base de test (idempotent sur le code). */
+    /** Creates an active domain in the test database (idempotent on code). */
     protected Domain createDomain(String code, String label) {
         return domainRepository.findById(code).orElseGet(() -> {
             Domain d = new Domain();
@@ -98,7 +98,7 @@ public abstract class IntegrationTestBase {
         });
     }
 
-    /** Crée une question active avec 2 réponses (une correcte, une incorrecte). */
+    /** Creates an active question with 2 answers (one correct, one incorrect). */
     protected Question createQuestion(Domain domain, User createdBy) {
         Question q = new Question();
         q.setStrUuid(UUID.randomUUID().toString());
@@ -106,8 +106,8 @@ public abstract class IntegrationTestBase {
         q.setEmDifficulty(QuestionDifficulty.MEDIUM);
         q.setEmQuestionType(QuestionType.MULTIPLE_CHOICE);
         q.setEmContentType(ContentType.TEXT);
-        q.setStrQuestionText("Question de test numéro " + UUID.randomUUID());
-        q.setStrExplanation("Explication de test.");
+        q.setStrQuestionText("Test question number " + UUID.randomUUID());
+        q.setStrExplanation("Test explanation.");
         q.setBActive(true);
         q.setBVerified(true);
         q.setIntPointValue(1);
@@ -119,9 +119,9 @@ public abstract class IntegrationTestBase {
         return questionRepository.save(q);
     }
 
-    /** Crée une réponse pour une question.
-     *  @param label     Court identifiant de l'option (max 5 car.) : "A", "B", "Vrai"…
-     *  @param text      Texte complet affiché à l'utilisateur.
+    /** Creates an answer for a question.
+     *  @param label     Short option identifier (max 5 chars): "A", "B", "True", ...
+     *  @param text      Full text shown to the user.
      */
     protected Answer createAnswer(Question question, String label, String text,
                                    boolean isCorrect, int sortOrder) {
@@ -134,14 +134,14 @@ public abstract class IntegrationTestBase {
         return answerRepository.save(a);
     }
 
-    /** Raccourci : crée une réponse avec un texte générique (utile pour les tests
-     *  qui n'ont pas besoin d'un contenu précis). */
+    /** Convenience overload that creates an answer with generic text for tests
+     *  that do not need specific content. */
     protected Answer createAnswer(Question question, String label,
                                    boolean isCorrect, int sortOrder) {
-        return createAnswer(question, label, "Réponse " + label, isCorrect, sortOrder);
+        return createAnswer(question, label, "Answer " + label, isCorrect, sortOrder);
     }
 
-    /** Sérialise un objet en JSON. */
+    /** Serializes an object to JSON. */
     protected String toJson(Object obj) throws Exception {
         return objectMapper.writeValueAsString(obj);
     }

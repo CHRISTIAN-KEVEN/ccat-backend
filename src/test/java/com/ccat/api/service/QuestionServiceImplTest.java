@@ -29,11 +29,11 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests unitaires pour QuestionServiceImpl.
- * Couvre le CRUD des questions et la gestion des erreurs métier.
+ * Unit tests for QuestionServiceImpl.
+ * Covers question CRUD operations and business error handling.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("QuestionServiceImpl — Tests Unitaires")
+@DisplayName("QuestionServiceImpl - Unit Tests")
 class QuestionServiceImplTest {
 
     @Mock QuestionRepository questionRepository;
@@ -69,8 +69,8 @@ class QuestionServiceImplTest {
         question.setEmDifficulty(QuestionDifficulty.MEDIUM);
         question.setEmQuestionType(QuestionType.MULTIPLE_CHOICE);
         question.setEmContentType(ContentType.TEXT);
-        question.setStrQuestionText("Quel est le synonyme de 'rapide' ?");
-        question.setStrExplanation("Explication de base.");
+        question.setStrQuestionText("What is the synonym of 'fast'?");
+        question.setStrExplanation("Basic explanation.");
         question.setBActive(true);
         question.setBVerified(false);
         question.setIntPointValue(1);
@@ -82,8 +82,8 @@ class QuestionServiceImplTest {
         questionResponse = new QuestionResponse(
                 10L, "uuid-q-001", "VERBAL", QuestionDifficulty.MEDIUM,
                 QuestionType.MULTIPLE_CHOICE, ContentType.TEXT,
-                "Quel est le synonyme de 'rapide' ?", null, null,
-                "Explication de base.", null, 1, 18000,
+                "What is the synonym of 'fast'?", null, null,
+                "Basic explanation.", null, 1, 18000,
                 true, false, List.of());
     }
 
@@ -92,11 +92,11 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("findAll() — Liste toutes les questions actives")
+    @DisplayName("findAll() - Lists all active questions")
     class FindAllTests {
 
         @Test
-        @DisplayName("Retourne la liste des questions actives")
+        @DisplayName("Returns the list of active questions")
         void findAll_returnsActiveQuestions() {
             when(questionRepository.findByBActiveTrueOrderByDtCreatedDesc())
                     .thenReturn(List.of(question));
@@ -112,7 +112,7 @@ class QuestionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Retourne une liste vide si aucune question active")
+        @DisplayName("Returns an empty list when there are no active questions")
         void findAll_noQuestions_returnsEmptyList() {
             when(questionRepository.findByBActiveTrueOrderByDtCreatedDesc())
                     .thenReturn(List.of());
@@ -128,11 +128,11 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("findByUuid() — Recherche par UUID")
+    @DisplayName("findByUuid() - Lookup by UUID")
     class FindByUuidTests {
 
         @Test
-        @DisplayName("Retourne la question si l'UUID existe")
+        @DisplayName("Returns the question when the UUID exists")
         void findByUuid_found_returnsQuestion() {
             when(questionRepository.findByStrUuid("uuid-q-001"))
                     .thenReturn(Optional.of(question));
@@ -148,12 +148,12 @@ class QuestionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Lève QuestionNotFoundException si l'UUID est introuvable")
+        @DisplayName("Throws QuestionNotFoundException when the UUID is not found")
         void findByUuid_notFound_throwsException() {
-            when(questionRepository.findByStrUuid("uuid-inexistant"))
+            when(questionRepository.findByStrUuid("uuid-missing"))
                     .thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.findByUuid("uuid-inexistant"))
+            assertThatThrownBy(() -> service.findByUuid("uuid-missing"))
                     .isInstanceOf(QuestionNotFoundException.class);
         }
     }
@@ -163,16 +163,16 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("create() — Création d'une question")
+    @DisplayName("create() - Creates a question")
     class CreateTests {
 
         @Test
-        @DisplayName("Crée et retourne la question avec un UUID généré automatiquement")
+        @DisplayName("Creates and returns the question with an auto-generated UUID")
         void create_validRequest_savesAndReturns() {
             var request = new QuestionCreateRequest(
                     "VERBAL", QuestionDifficulty.MEDIUM, QuestionType.MULTIPLE_CHOICE,
-                    ContentType.TEXT, "Quel est le synonyme de 'rapide' ?",
-                    null, null, "Explication", null, 1, 18000, null, null);
+                    ContentType.TEXT, "What is the synonym of 'fast'?",
+                    null, null, "Explanation", null, 1, 18000, null, null);
 
             when(domainRepository.findById("VERBAL")).thenReturn(Optional.of(domain));
             when(userRepository.findByStrEmail("admin@test.com")).thenReturn(Optional.of(admin));
@@ -186,18 +186,18 @@ class QuestionServiceImplTest {
 
             assertThat(result).isNotNull();
             verify(questionRepository).save(any(Question.class));
-            // Vérifier qu'un UUID a été assigné à la question avant la sauvegarde
+            // Verify that a UUID was assigned to the question before saving
             verify(questionMapper).toEntity(eq(request), eq(domain), eq(admin));
         }
 
         @Test
-        @DisplayName("Lève DomainNotFoundException si le domaine est introuvable")
+        @DisplayName("Throws DomainNotFoundException when the domain is not found")
         void create_domainNotFound_throwsException() {
             var request = new QuestionCreateRequest(
-                    "DOMAINE_INEXISTANT", QuestionDifficulty.EASY, QuestionType.TRUE_FALSE,
-                    ContentType.TEXT, "Question ?", null, null, null, null, 1, 18000, null, null);
+                    "MISSING_DOMAIN", QuestionDifficulty.EASY, QuestionType.TRUE_FALSE,
+                    ContentType.TEXT, "Question?", null, null, null, null, 1, 18000, null, null);
 
-            when(domainRepository.findById("DOMAINE_INEXISTANT")).thenReturn(Optional.empty());
+            when(domainRepository.findById("MISSING_DOMAIN")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.create(request, "admin@test.com"))
                     .isInstanceOf(DomainNotFoundException.class);
@@ -209,16 +209,16 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("update() — Mise à jour d'une question")
+    @DisplayName("update() - Updates a question")
     class UpdateTests {
 
         @Test
-        @DisplayName("Met à jour uniquement les champs non-null")
+        @DisplayName("Updates only non-null fields")
         void update_partialUpdate_onlyChangesProvidedFields() {
             var request = new QuestionUpdateRequest(
                     QuestionDifficulty.HARD, null, null,
-                    "Nouveau texte de question", null, null,
-                    "Nouvelle explication", null, null, null,
+                    "Updated question text", null, null,
+                    "Updated explanation", null, null, null,
                     null, null, null, null);
 
             when(questionRepository.findByStrUuid("uuid-q-001"))
@@ -231,23 +231,23 @@ class QuestionServiceImplTest {
             service.update("uuid-q-001", request);
 
             assertThat(question.getEmDifficulty()).isEqualTo(QuestionDifficulty.HARD);
-            assertThat(question.getStrQuestionText()).isEqualTo("Nouveau texte de question");
-            assertThat(question.getStrExplanation()).isEqualTo("Nouvelle explication");
-            // Le type de question n'a pas changé (null dans la requête)
+            assertThat(question.getStrQuestionText()).isEqualTo("Updated question text");
+            assertThat(question.getStrExplanation()).isEqualTo("Updated explanation");
+            // The question type should remain unchanged because the request value is null
             assertThat(question.getEmQuestionType()).isEqualTo(QuestionType.MULTIPLE_CHOICE);
         }
 
         @Test
-        @DisplayName("Lève QuestionNotFoundException si l'UUID est introuvable")
+        @DisplayName("Throws QuestionNotFoundException when the UUID is not found")
         void update_notFound_throwsException() {
             var request = new QuestionUpdateRequest(
                     null, null, null, null, null, null,
                     null, null, null, null, null, null, null, null);
 
-            when(questionRepository.findByStrUuid("uuid-inexistant"))
+            when(questionRepository.findByStrUuid("uuid-missing"))
                     .thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.update("uuid-inexistant", request))
+            assertThatThrownBy(() -> service.update("uuid-missing", request))
                     .isInstanceOf(QuestionNotFoundException.class);
         }
     }
@@ -257,11 +257,11 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("delete() — Suppression logique d'une question")
+    @DisplayName("delete() - Soft deletes a question")
     class DeleteTests {
 
         @Test
-        @DisplayName("Met bActive à false sans supprimer la ligne en base")
+        @DisplayName("Sets bActive to false without deleting the database row")
         void delete_existingQuestion_setsInactive() {
             when(questionRepository.findByStrUuid("uuid-q-001"))
                     .thenReturn(Optional.of(question));
@@ -271,17 +271,17 @@ class QuestionServiceImplTest {
 
             assertThat(question.getBActive()).isFalse();
             verify(questionRepository).save(question);
-            // Pas de deleteById — c'est un soft delete
+            // No deleteById call because this is a soft delete
             verify(questionRepository, never()).deleteById(any());
         }
 
         @Test
-        @DisplayName("Lève QuestionNotFoundException si l'UUID est introuvable")
+        @DisplayName("Throws QuestionNotFoundException when the UUID is not found")
         void delete_notFound_throwsException() {
-            when(questionRepository.findByStrUuid("uuid-inexistant"))
+            when(questionRepository.findByStrUuid("uuid-missing"))
                     .thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.delete("uuid-inexistant"))
+            assertThatThrownBy(() -> service.delete("uuid-missing"))
                     .isInstanceOf(QuestionNotFoundException.class);
         }
     }
@@ -291,11 +291,11 @@ class QuestionServiceImplTest {
     // =========================================================================
 
     @Nested
-    @DisplayName("findByDomain() — Filtrage par domaine")
+    @DisplayName("findByDomain() - Filters by domain")
     class FindByDomainTests {
 
         @Test
-        @DisplayName("Retourne les questions du domaine demandé")
+        @DisplayName("Returns the questions for the requested domain")
         void findByDomain_returnsMatchingQuestions() {
             when(questionRepository.findByDomainStrDomainCodeAndBActiveTrue("VERBAL"))
                     .thenReturn(List.of(question));
@@ -309,7 +309,7 @@ class QuestionServiceImplTest {
         }
 
         @Test
-        @DisplayName("Retourne une liste vide pour un domaine sans questions actives")
+        @DisplayName("Returns an empty list for a domain with no active questions")
         void findByDomain_noQuestions_returnsEmptyList() {
             when(questionRepository.findByDomainStrDomainCodeAndBActiveTrue("SPATIAL"))
                     .thenReturn(List.of());

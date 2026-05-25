@@ -26,12 +26,12 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests unitaires pour UserAdviceServiceImpl.
- * Couvre les 11 règles de déclenchement (trigger rules),
- * la génération de conseils et les interactions utilisateur.
+ * Unit tests for UserAdviceServiceImpl.
+ * Covers the 11 trigger rules,
+ * advice generation, and user interactions.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserAdviceServiceImpl — Tests Unitaires")
+@DisplayName("UserAdviceServiceImpl - Unit Tests")
 class UserAdviceServiceImplTest {
 
     @Mock UserAdviceRepository  userAdviceRepository;
@@ -74,139 +74,139 @@ class UserAdviceServiceImplTest {
     }
 
     // =========================================================================
-    // Règles de déclenchement — matchesTrigger
+    // Trigger rules - matchesTrigger
     // =========================================================================
 
     @Nested
-    @DisplayName("matchesTrigger() — Les 11 règles de déclenchement")
+    @DisplayName("matchesTrigger() - The 11 trigger rules")
     class MatchesTriggerTests {
 
         @Test
-        @DisplayName("ACCURACY_BELOW_50 se déclenche si précision < 50%")
+        @DisplayName("ACCURACY_BELOW_50 triggers when accuracy < 50%")
         void trigger_accuracyBelow50_matches() throws Exception {
             result.setDbAccuracyPercent(45.0);
             assertThat(invokeTrigger("ACCURACY_BELOW_50")).isTrue();
         }
 
         @Test
-        @DisplayName("ACCURACY_BELOW_50 ne se déclenche pas si précision ≥ 50%")
+        @DisplayName("ACCURACY_BELOW_50 does not trigger when accuracy >= 50%")
         void trigger_accuracyBelow50_doesNotMatch() throws Exception {
             result.setDbAccuracyPercent(55.0);
             assertThat(invokeTrigger("ACCURACY_BELOW_50")).isFalse();
         }
 
         @Test
-        @DisplayName("ACCURACY_BELOW_70 se déclenche pour 50% ≤ précision < 70%")
+        @DisplayName("ACCURACY_BELOW_70 triggers for 50% <= accuracy < 70%")
         void trigger_accuracyBelow70_matches() throws Exception {
             result.setDbAccuracyPercent(65.0);
             assertThat(invokeTrigger("ACCURACY_BELOW_70")).isTrue();
         }
 
         @Test
-        @DisplayName("ACCURACY_BELOW_70 ne se déclenche pas si précision ≥ 70%")
+        @DisplayName("ACCURACY_BELOW_70 does not trigger when accuracy >= 70%")
         void trigger_accuracyBelow70_doesNotMatchAbove70() throws Exception {
             result.setDbAccuracyPercent(75.0);
             assertThat(invokeTrigger("ACCURACY_BELOW_70")).isFalse();
         }
 
         @Test
-        @DisplayName("ACCURACY_BELOW_70 ne se déclenche pas si précision < 50% (chevauchement géré)")
+        @DisplayName("ACCURACY_BELOW_70 does not trigger when accuracy < 50% (overlap handled)")
         void trigger_accuracyBelow70_doesNotMatchBelow50() throws Exception {
             result.setDbAccuracyPercent(40.0);
             assertThat(invokeTrigger("ACCURACY_BELOW_70")).isFalse();
         }
 
         @Test
-        @DisplayName("PACE_TOO_SLOW se déclenche si rythme == TOO_SLOW")
+        @DisplayName("PACE_TOO_SLOW triggers when pace == TOO_SLOW")
         void trigger_paceTooSlow_matches() throws Exception {
             result.setEmPaceRating(PaceRating.TOO_SLOW);
             assertThat(invokeTrigger("PACE_TOO_SLOW")).isTrue();
         }
 
         @Test
-        @DisplayName("PACE_VERY_FAST se déclenche si rythme == VERY_FAST")
+        @DisplayName("PACE_VERY_FAST triggers when pace == VERY_FAST")
         void trigger_paceVeryFast_matches() throws Exception {
             result.setEmPaceRating(PaceRating.VERY_FAST);
             assertThat(invokeTrigger("PACE_VERY_FAST")).isTrue();
         }
 
         @Test
-        @DisplayName("SKIP_HEAVY se déclenche si questions sautées > 10")
+        @DisplayName("SKIP_HEAVY triggers when skipped questions > 10")
         void trigger_skipHeavy_matches() throws Exception {
             result.setIntSkippedCount(11);
             assertThat(invokeTrigger("SKIP_HEAVY")).isTrue();
         }
 
         @Test
-        @DisplayName("SKIP_HEAVY ne se déclenche pas si questions sautées ≤ 10")
+        @DisplayName("SKIP_HEAVY does not trigger when skipped questions <= 10")
         void trigger_skipHeavy_doesNotMatch() throws Exception {
             result.setIntSkippedCount(10);
             assertThat(invokeTrigger("SKIP_HEAVY")).isFalse();
         }
 
         @Test
-        @DisplayName("TIME_EXPIRED se déclenche si session soumise par le timer")
+        @DisplayName("TIME_EXPIRED triggers when the session is submitted by the timer")
         void trigger_timeExpired_matches() throws Exception {
             session.setBSubmittedByTimer(true);
             assertThat(invokeTrigger("TIME_EXPIRED")).isTrue();
         }
 
         @Test
-        @DisplayName("LOW_SCORE se déclenche si score en dessous du seuil")
+        @DisplayName("LOW_SCORE triggers when the score is below the threshold")
         void trigger_lowScore_matches() throws Exception {
             result.setBPassedThreshold(false);
             assertThat(invokeTrigger("LOW_SCORE")).isTrue();
         }
 
         @Test
-        @DisplayName("HIGH_ACHIEVER se déclenche si score ≥ 37")
+        @DisplayName("HIGH_ACHIEVER triggers when score >= 37")
         void trigger_highAchiever_matches() throws Exception {
             result.setIntTotalScore(37);
             assertThat(invokeTrigger("HIGH_ACHIEVER")).isTrue();
         }
 
         @Test
-        @DisplayName("HIGH_ACHIEVER ne se déclenche pas si score < 37")
+        @DisplayName("HIGH_ACHIEVER does not trigger when score < 37")
         void trigger_highAchiever_doesNotMatch() throws Exception {
             result.setIntTotalScore(36);
             assertThat(invokeTrigger("HIGH_ACHIEVER")).isFalse();
         }
 
         @Test
-        @DisplayName("LOW_COMPLETION se déclenche si complétion < 80%")
+        @DisplayName("LOW_COMPLETION triggers when completion < 80%")
         void trigger_lowCompletion_matches() throws Exception {
             result.setDbCompletionPercent(75.0);
             assertThat(invokeTrigger("LOW_COMPLETION")).isTrue();
         }
 
         @Test
-        @DisplayName("SLOW_ON_CORRECT se déclenche si temps moyen correct > 20s")
+        @DisplayName("SLOW_ON_CORRECT triggers when average correct time > 20s")
         void trigger_slowOnCorrect_matches() throws Exception {
             result.setDbAvgTimeCorrectMs(21_000.0);
             assertThat(invokeTrigger("SLOW_ON_CORRECT")).isTrue();
         }
 
         @Test
-        @DisplayName("WEAK_DOMAIN:NUMERICAL se déclenche si NUMERICAL est le domaine le plus faible")
+        @DisplayName("WEAK_DOMAIN:NUMERICAL triggers when NUMERICAL is the weakest domain")
         void trigger_weakDomainNumerical_matches() throws Exception {
             result.setEmWeakestDomain("NUMERICAL");
             assertThat(invokeTrigger("WEAK_DOMAIN:NUMERICAL")).isTrue();
         }
 
         @Test
-        @DisplayName("WEAK_DOMAIN:VERBAL ne se déclenche pas si NUMERICAL est le plus faible")
+        @DisplayName("WEAK_DOMAIN:VERBAL does not trigger when NUMERICAL is the weakest domain")
         void trigger_weakDomainVerbal_doesNotMatch() throws Exception {
             result.setEmWeakestDomain("NUMERICAL");
             assertThat(invokeTrigger("WEAK_DOMAIN:VERBAL")).isFalse();
         }
 
         @Test
-        @DisplayName("Règle inconnue retourne false sans exception")
+        @DisplayName("Unknown rule returns false without exception")
         void trigger_unknownRule_returnsFalse() throws Exception {
             assertThat(invokeTrigger("UNKNOWN_RULE_XYZ")).isFalse();
         }
 
-        // ── Helper reflection ─────────────────────────────────────────────
+        // Reflection helper
         private boolean invokeTrigger(String rule) throws Exception {
             var method = UserAdviceServiceImpl.class.getDeclaredMethod(
                     "matchesTrigger", String.class, TestResult.class, List.class);
@@ -216,15 +216,15 @@ class UserAdviceServiceImplTest {
     }
 
     // =========================================================================
-    // Génération de conseils (generateForResult)
+    // Advice generation
     // =========================================================================
 
     @Nested
-    @DisplayName("generateForResult() — Génération des conseils après un test")
+    @DisplayName("generateForResult() - Generates advice after a test")
     class GenerateForResultTests {
 
         @Test
-        @DisplayName("Ne génère rien si aucune carte de conseil ne correspond")
+        @DisplayName("Generates nothing when no advice card matches")
         void generateForResult_noMatchingCards_savesNothing() {
             when(adviceCardRepository.findAllActive()).thenReturn(List.of());
 
@@ -234,10 +234,10 @@ class UserAdviceServiceImplTest {
         }
 
         @Test
-        @DisplayName("Génère un conseil pour chaque carte correspondante")
+        @DisplayName("Generates one advice entry for each matching card")
         void generateForResult_matchingCards_savesAdvice() {
-            result.setDbAccuracyPercent(45.0); // déclenche ACCURACY_BELOW_50
-            result.setBPassedThreshold(false); // déclenche LOW_SCORE
+            result.setDbAccuracyPercent(45.0); // triggers ACCURACY_BELOW_50
+            result.setBPassedThreshold(false); // triggers LOW_SCORE
 
             AdviceCard card1 = buildAdviceCard(1L, "ACCURACY_BELOW_50", AdvicePriority.HIGH);
             AdviceCard card2 = buildAdviceCard(2L, "LOW_SCORE", AdvicePriority.CRITICAL);
@@ -251,12 +251,12 @@ class UserAdviceServiceImplTest {
 
             service.generateForResult(result, List.of());
 
-            // 2 cartes correspondantes → 2 sauvegardes
+            // 2 matching cards -> 2 saves
             verify(userAdviceRepository, times(2)).save(any(UserAdvice.class));
         }
 
         @Test
-        @DisplayName("Ne duplique pas un conseil déjà existant pour ce résultat")
+        @DisplayName("Does not duplicate advice that already exists for this result")
         void generateForResult_alreadyExists_skipsAdvice() {
             result.setDbAccuracyPercent(45.0);
 
@@ -264,7 +264,7 @@ class UserAdviceServiceImplTest {
             when(adviceCardRepository.findAllActive()).thenReturn(List.of(card));
             when(testResultRepository.save(any())).thenReturn(result);
             when(userAdviceRepository.existsByUserLgIdAndAdviceCardLgIdAndResultLgId(
-                    anyLong(), anyLong(), anyLong())).thenReturn(true); // déjà existant
+                    anyLong(), anyLong(), anyLong())).thenReturn(true); // already exists
 
             service.generateForResult(result, List.of());
 
@@ -272,7 +272,7 @@ class UserAdviceServiceImplTest {
         }
 
         @Test
-        @DisplayName("Trie les conseils par priorité : CRITICAL avant HIGH avant MEDIUM avant LOW")
+        @DisplayName("Sorts advice by priority: CRITICAL before HIGH before MEDIUM before LOW")
         void generateForResult_sortsByPriority() {
             result.setDbAccuracyPercent(45.0); // ACCURACY_BELOW_50
             result.setBPassedThreshold(false); // LOW_SCORE
@@ -297,23 +297,23 @@ class UserAdviceServiceImplTest {
             service.generateForResult(result, List.of());
 
             List<UserAdvice> saved = captor.getAllValues();
-            // ACCURACY_BELOW_70 ne correspond pas (précision < 50 → ne correspond pas à ACCURACY_BELOW_70)
-            // Les rangs doivent refléter la priorité : CRITICAL=1, HIGH=2, MEDIUM=3
+            // ACCURACY_BELOW_70 does not match (accuracy < 50, so it should not match ACCURACY_BELOW_70)
+            // The ranks must reflect priority: CRITICAL=1, HIGH=2, MEDIUM=3
             assertThat(saved.get(0).getAdviceCard().getEmPriority()).isEqualTo(AdvicePriority.CRITICAL);
             assertThat(saved.get(1).getAdviceCard().getEmPriority()).isEqualTo(AdvicePriority.HIGH);
         }
     }
 
     // =========================================================================
-    // Marquer comme lu (markRead)
+    // Mark as read
     // =========================================================================
 
     @Nested
-    @DisplayName("markRead() — Marquage d'un conseil comme lu")
+    @DisplayName("markRead() - Marks advice as read")
     class MarkReadTests {
 
         @Test
-        @DisplayName("Marque le conseil comme lu si ce n'est pas déjà fait")
+        @DisplayName("Marks the advice as read if it was not already read")
         void markRead_notYetRead_setsReadFlag() {
             UserAdvice advice = buildUserAdvice(1L, false);
             when(userAdviceRepository.findById(1L)).thenReturn(Optional.of(advice));
@@ -327,7 +327,7 @@ class UserAdviceServiceImplTest {
         }
 
         @Test
-        @DisplayName("Ne modifie pas dtRead si le conseil est déjà lu")
+        @DisplayName("Does not modify dtRead if the advice is already read")
         void markRead_alreadyRead_doesNotUpdateReadDate() {
             UserAdvice advice = buildUserAdvice(1L, true);
             var originalDate = java.time.LocalDateTime.now().minusDays(1);
@@ -343,47 +343,47 @@ class UserAdviceServiceImplTest {
         }
 
         @Test
-        @DisplayName("Lève une exception si le conseil n'appartient pas à l'utilisateur")
+        @DisplayName("Throws an exception when the advice does not belong to the user")
         void markRead_wrongUser_throwsException() {
             UserAdvice advice = buildUserAdvice(1L, false);
             when(userAdviceRepository.findById(1L)).thenReturn(Optional.of(advice));
 
-            assertThatThrownBy(() -> service.markRead(1L, "autre@test.com"))
+            assertThatThrownBy(() -> service.markRead(1L, "other@test.com"))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
     // =========================================================================
-    // Feedback utilisateur (submitFeedback)
+    // User feedback
     // =========================================================================
 
     @Nested
-    @DisplayName("submitFeedback() — Soumission du feedback")
+    @DisplayName("submitFeedback() - Submits feedback")
     class SubmitFeedbackTests {
 
         @Test
-        @DisplayName("Enregistre le feedback complet correctement")
+        @DisplayName("Saves the full feedback correctly")
         void submitFeedback_withAllFields_savesAll() {
             UserAdvice advice = buildUserAdvice(1L, false);
             when(userAdviceRepository.findById(1L)).thenReturn(Optional.of(advice));
             when(userAdviceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
             when(userAdviceMapper.toResponse(any())).thenReturn(null);
 
-            var request = new UserAdviceFeedbackRequest(1L, true, "Très utile !", 3000);
+            var request = new UserAdviceFeedbackRequest(1L, true, "Very helpful!", 3000);
             service.submitFeedback(request, "alice@test.com");
 
             assertThat(advice.getBWasHelpful()).isTrue();
-            assertThat(advice.getStrUserNote()).isEqualTo("Très utile !");
+            assertThat(advice.getStrUserNote()).isEqualTo("Very helpful!");
             assertThat(advice.getIntTimeSpentMs()).isEqualTo(3000);
             assertThat(advice.getBWasRead()).isTrue();
         }
 
         @Test
-        @DisplayName("Les champs null dans le feedback ne remplacent pas les valeurs existantes")
+        @DisplayName("Null feedback fields do not replace existing values")
         void submitFeedback_nullFields_keepsExistingValues() {
             UserAdvice advice = buildUserAdvice(1L, true);
             advice.setBWasHelpful(true);
-            advice.setStrUserNote("Note existante");
+            advice.setStrUserNote("Existing note");
 
             when(userAdviceRepository.findById(1L)).thenReturn(Optional.of(advice));
             when(userAdviceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -393,7 +393,7 @@ class UserAdviceServiceImplTest {
             service.submitFeedback(request, "alice@test.com");
 
             assertThat(advice.getBWasHelpful()).isTrue();
-            assertThat(advice.getStrUserNote()).isEqualTo("Note existante");
+            assertThat(advice.getStrUserNote()).isEqualTo("Existing note");
         }
     }
 
@@ -408,8 +408,8 @@ class UserAdviceServiceImplTest {
         card.setEmTriggerRule(rule);
         card.setEmPriority(priority);
         card.setEmCategory(com.ccat.api.model.enums.AdviceCategory.GENERAL);
-        card.setStrTitle("Conseil " + id);
-        card.setStrContent("Contenu du conseil " + id);
+        card.setStrTitle("Advice " + id);
+        card.setStrContent("Advice content " + id);
         card.setBActive(true);
         card.setIntDisplayCount(0);
         return card;

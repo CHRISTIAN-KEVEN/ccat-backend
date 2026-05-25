@@ -18,10 +18,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Tests d'intégration pour TestSessionController.
- * Couvre le cycle de vie complet d'une session : démarrage → réponses → résultats.
+ * Integration tests for TestSessionController.
+ * Covers the full session lifecycle: start -> responses -> results.
  *
- * Endpoints couverts :
+ * Covered endpoints:
  *   POST   /api/v1/sessions
  *   GET    /api/v1/sessions/me
  *   GET    /api/v1/sessions/{id}
@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   GET    /api/v1/sessions/{id}/result
  *   GET    /api/v1/sessions/{id}/review
  */
-@DisplayName("TestSessionController — Tests d'intégration")
+@DisplayName("TestSessionController - Integration Tests")
 class TestSessionControllerIT extends IntegrationTestBase {
 
     private static final String BASE = "/api/v1/sessions";
@@ -48,28 +48,28 @@ class TestSessionControllerIT extends IntegrationTestBase {
         userToken = bearerToken("alice@test.com");
         domain    = createDomain("VERBAL", "Verbal Reasoning");
 
-        // Créer 50 questions minimum pour pouvoir démarrer une session
+        // Create at least 50 questions so a session can start
         questions     = new ArrayList<>();
         correctAnswers = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
             Question q = createQuestion(domain, user);
-            Answer correct = createAnswer(q, "A", "Bonne réponse",    true,  1);
-            createAnswer(q,                     "B", "Mauvaise réponse", false, 2);
+            Answer correct = createAnswer(q, "A", "Correct answer", true, 1);
+            createAnswer(q, "B", "Wrong answer", false, 2);
             questions.add(q);
             correctAnswers.add(correct);
         }
     }
 
     // =========================================================================
-    // POST /sessions — Démarrage
+    // POST /sessions - Start
     // =========================================================================
 
     @Nested
-    @DisplayName("POST /sessions — Démarrage d'une session")
+    @DisplayName("POST /sessions - Start a session")
     class StartTests {
 
         @Test
-        @DisplayName("201 — Session PREMIUM_FULL créée avec succès")
+        @DisplayName("201 - PREMIUM_FULL session created successfully")
         void start_premiumFull_returns201() throws Exception {
             var request = new TestSessionCreateRequest(
                     SessionType.PREMIUM_FULL, "v1", "100", "50-50-0", false);
@@ -86,7 +86,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("201 — Session FREE_DIAGNOSTIC créée si aucune n'existe encore")
+        @DisplayName("201 - FREE_DIAGNOSTIC session created when none exists yet")
         void start_freeDiagnostic_firstTime_returns201() throws Exception {
             var request = new TestSessionCreateRequest(
                     SessionType.FREE_DIAGNOSTIC, "v1", "100", "50-50-0", false);
@@ -100,9 +100,9 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("402 — Deuxième FREE_DIAGNOSTIC refusé")
+        @DisplayName("402 - Second FREE_DIAGNOSTIC is rejected")
         void start_freeDiagnostic_secondTime_returns402() throws Exception {
-            // Créer un premier diagnostic
+            // Create a first diagnostic session
             var first = new TestSessionCreateRequest(
                     SessionType.FREE_DIAGNOSTIC, "v1", "100", "50-50-0", false);
             mockMvc.perform(post(BASE)
@@ -110,7 +110,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(toJson(first)));
 
-            // Tenter un deuxième
+            // Attempt a second one
             mockMvc.perform(post(BASE)
                             .header("Authorization", userToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +119,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void start_noToken_returns403() throws Exception {
             var request = new TestSessionCreateRequest(
                     SessionType.PREMIUM_FULL, "v1", null, null, false);
@@ -131,9 +131,9 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("400 — emSessionType manquant")
+        @DisplayName("400 - Missing emSessionType")
         void start_nullSessionType_returns400() throws Exception {
-            // JSON sans emSessionType
+            // JSON without emSessionType
             mockMvc.perform(post(BASE)
                             .header("Authorization", userToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -143,15 +143,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // GET /sessions/me — Historique
+    // GET /sessions/me - History
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/me — Historique des sessions")
+    @DisplayName("GET /sessions/me - Session history")
     class HistoryTests {
 
         @Test
-        @DisplayName("200 — Retourne la liste des sessions (vide au départ)")
+        @DisplayName("200 - Returns the session list, empty at first")
         void getMyHistory_noSessions_returnsEmptyList() throws Exception {
             mockMvc.perform(get(BASE + "/me")
                             .header("Authorization", userToken))
@@ -160,9 +160,9 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("200 — Retourne les sessions après en avoir créé une")
+        @DisplayName("200 - Returns sessions after creating one")
         void getMyHistory_withSession_returnsList() throws Exception {
-            // Créer une session
+            // Create a session
             var request = new TestSessionCreateRequest(
                     SessionType.PREMIUM_FULL, "v1", "100", "50-50-0", false);
             mockMvc.perform(post(BASE)
@@ -177,7 +177,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void getMyHistory_noToken_returns403() throws Exception {
             mockMvc.perform(get(BASE + "/me"))
                     .andExpect(status().isForbidden());
@@ -185,15 +185,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // GET /sessions/{id} — Détail d'une session
+    // GET /sessions/{id} - Session details
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/{id} — Détail d'une session")
+    @DisplayName("GET /sessions/{id} - Session details")
     class GetByIdTests {
 
         @Test
-        @DisplayName("200 — Retourne les détails d'une session existante")
+        @DisplayName("200 - Returns details for an existing session")
         void getById_existingSession_returns200() throws Exception {
             Long sessionId = startSession();
 
@@ -204,7 +204,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("404 — Session inexistante")
+        @DisplayName("404 - Non-existent session")
         void getById_nonExistent_returns404() throws Exception {
             mockMvc.perform(get(BASE + "/99999")
                             .header("Authorization", userToken))
@@ -212,10 +212,10 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("404 — Session d'un autre utilisateur (sécurité : pas de fuite d'ID)")
+        @DisplayName("404 - Another user's session (security: no ID leakage)")
         void getById_sessionOfAnotherUser_returns404() throws Exception {
             Long sessionId = startSession();
-            // Autre utilisateur
+            // Another user
             createUser("eve@test.com", "Str0ng!Pass");
             String eveToken = bearerToken("eve@test.com");
 
@@ -226,15 +226,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // GET /sessions/{id}/questions — Questions de la session
+    // GET /sessions/{id}/questions - Session questions
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/{id}/questions — Questions de la session")
+    @DisplayName("GET /sessions/{id}/questions - Session questions")
     class GetQuestionsTests {
 
         @Test
-        @DisplayName("200 — Retourne 50 questions pour une session active")
+        @DisplayName("200 - Returns 50 questions for an active session")
         void getSessionQuestions_activeSession_returns50Questions() throws Exception {
             Long sessionId = startSession();
 
@@ -245,7 +245,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("409 — Session déjà soumise : questions non accessibles")
+        @DisplayName("409 - Submitted session: questions are no longer accessible")
         void getSessionQuestions_submittedSession_returns409() throws Exception {
             Long sessionId = startSession();
             finishSession(sessionId);
@@ -257,15 +257,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // POST /sessions/{id}/finish — Soumission finale
+    // POST /sessions/{id}/finish - Final submission
     // =========================================================================
 
     @Nested
-    @DisplayName("POST /sessions/{id}/finish — Soumission de la session")
+    @DisplayName("POST /sessions/{id}/finish - Submit the session")
     class FinishTests {
 
         @Test
-        @DisplayName("200 — Retourne les résultats après soumission")
+        @DisplayName("200 - Returns results after submission")
         void finish_activeSession_returnsResults() throws Exception {
             Long sessionId = startSession();
 
@@ -278,17 +278,17 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("200 — Double appel finish idempotent : retourne les mêmes résultats")
+        @DisplayName("200 - Double finish call is idempotent and returns the same results")
         void finish_calledTwice_isIdempotent() throws Exception {
             Long sessionId = startSession();
 
-            // Premier appel
+            // First call
             String firstResult = mockMvc.perform(post(BASE + "/" + sessionId + "/finish")
                             .header("Authorization", userToken))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
-            // Deuxième appel → même résultat
+            // Second call -> same result
             mockMvc.perform(post(BASE + "/" + sessionId + "/finish")
                             .header("Authorization", userToken))
                     .andExpect(status().isOk())
@@ -298,7 +298,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("404 — Session inexistante")
+        @DisplayName("404 - Non-existent session")
         void finish_nonExistent_returns404() throws Exception {
             mockMvc.perform(post(BASE + "/99999/finish")
                             .header("Authorization", userToken))
@@ -307,15 +307,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // GET /sessions/{id}/result — Résultats
+    // GET /sessions/{id}/result - Results
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/{id}/result — Résultats d'une session")
+    @DisplayName("GET /sessions/{id}/result - Session results")
     class GetResultTests {
 
         @Test
-        @DisplayName("200 — Résultats disponibles après soumission")
+        @DisplayName("200 - Results are available after submission")
         void getResult_submittedSession_returnsResult() throws Exception {
             Long sessionId = startSession();
             finishSession(sessionId);
@@ -330,7 +330,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void getResult_noToken_returns403() throws Exception {
             mockMvc.perform(get(BASE + "/1/result"))
                     .andExpect(status().isForbidden());
@@ -338,15 +338,15 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // GET /sessions/{id}/review — Révision
+    // GET /sessions/{id}/review - Review
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/{id}/review — Révision post-test")
+    @DisplayName("GET /sessions/{id}/review - Post-test review")
     class GetReviewTests {
 
         @Test
-        @DisplayName("200 — Révision disponible après soumission avec questions et réponses")
+        @DisplayName("200 - Review is available after submission with questions and answers")
         void getReview_submittedSession_returnsReview() throws Exception {
             Long sessionId = startSession();
             finishSession(sessionId);
@@ -358,7 +358,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("409 — Révision non disponible si la session est encore active")
+        @DisplayName("409 - Review is unavailable while the session is still active")
         void getReview_activeSession_returns409() throws Exception {
             Long sessionId = startSession();
 
@@ -369,10 +369,10 @@ class TestSessionControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // Helpers privés
+    // Private helpers
     // =========================================================================
 
-    /** Démarre une session et retourne son ID. */
+    /** Starts a session and returns its ID. */
     private Long startSession() throws Exception {
         var request = new TestSessionCreateRequest(
                 SessionType.PREMIUM_FULL, "v1", "100", "50-50-0", false);
@@ -387,7 +387,7 @@ class TestSessionControllerIT extends IntegrationTestBase {
         return objectMapper.readTree(body).get("lgId").asLong();
     }
 
-    /** Soumet la session (finish) pour obtenir les résultats. */
+    /** Submits the session via finish to produce results. */
     private void finishSession(Long sessionId) throws Exception {
         mockMvc.perform(post(BASE + "/" + sessionId + "/finish")
                 .header("Authorization", userToken));

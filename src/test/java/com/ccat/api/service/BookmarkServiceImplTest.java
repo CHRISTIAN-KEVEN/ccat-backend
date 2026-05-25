@@ -24,11 +24,11 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests unitaires pour BookmarkServiceImpl.
- * Couvre l'ajout, la suppression et la mise à jour des marque-pages.
+ * Unit tests for BookmarkServiceImpl.
+ * Covers bookmark creation, removal, and note updates.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("BookmarkServiceImpl — Tests Unitaires")
+@DisplayName("BookmarkServiceImpl - Unit Tests")
 class BookmarkServiceImplTest {
 
     @Mock QuestionBookmarkRepository bookmarkRepository;
@@ -61,7 +61,7 @@ class BookmarkServiceImplTest {
         question.setEmDifficulty(QuestionDifficulty.MEDIUM);
         question.setEmQuestionType(QuestionType.MULTIPLE_CHOICE);
         question.setEmContentType(ContentType.TEXT);
-        question.setStrQuestionText("Quel est le synonyme de 'rapide' ?");
+        question.setStrQuestionText("What is the synonym of 'fast'?");
         question.setBActive(true);
 
         bookmark = new QuestionBookmark();
@@ -72,15 +72,15 @@ class BookmarkServiceImplTest {
     }
 
     // =========================================================================
-    // toggle — Ajout / Suppression d'un marque-page
+    // toggle - add or remove a bookmark
     // =========================================================================
 
     @Nested
-    @DisplayName("toggle() — Ajout / Suppression d'un marque-page")
+    @DisplayName("toggle() - Adds or removes a bookmark")
     class ToggleTests {
 
         @Test
-        @DisplayName("Ajoute le marque-page si la question n'est pas encore bookmarkée → retourne true")
+        @DisplayName("Adds the bookmark when the question is not bookmarked yet and returns true")
         void toggle_notBookmarked_addsAndReturnsTrue() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(questionRepository.findById(42L)).thenReturn(Optional.of(question));
@@ -95,7 +95,7 @@ class BookmarkServiceImplTest {
         }
 
         @Test
-        @DisplayName("Supprime le marque-page s'il existe déjà → retourne false")
+        @DisplayName("Removes the bookmark when it already exists and returns false")
         void toggle_alreadyBookmarked_removesAndReturnsFalse() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(questionRepository.findById(42L)).thenReturn(Optional.of(question));
@@ -110,7 +110,7 @@ class BookmarkServiceImplTest {
         }
 
         @Test
-        @DisplayName("Lève QuestionNotFoundException si la question n'existe pas")
+        @DisplayName("Throws QuestionNotFoundException when the question does not exist")
         void toggle_questionNotFound_throwsException() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(questionRepository.findById(99L)).thenReturn(Optional.empty());
@@ -121,15 +121,15 @@ class BookmarkServiceImplTest {
     }
 
     // =========================================================================
-    // getMyBookmarks — Liste des marque-pages
+    // getMyBookmarks - list bookmarks
     // =========================================================================
 
     @Nested
-    @DisplayName("getMyBookmarks() — Récupération des marque-pages")
+    @DisplayName("getMyBookmarks() - Retrieves bookmarks")
     class GetMyBookmarksTests {
 
         @Test
-        @DisplayName("Retourne la liste des marque-pages de l'utilisateur")
+        @DisplayName("Returns the user's bookmark list")
         void getMyBookmarks_withBookmarks_returnsList() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findByUserLgIdOrderByDtCreatedDesc(1L))
@@ -146,7 +146,7 @@ class BookmarkServiceImplTest {
         }
 
         @Test
-        @DisplayName("Retourne une liste vide si aucun marque-page")
+        @DisplayName("Returns an empty list when there are no bookmarks")
         void getMyBookmarks_noBookmarks_returnsEmptyList() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findByUserLgIdOrderByDtCreatedDesc(1L))
@@ -159,15 +159,15 @@ class BookmarkServiceImplTest {
     }
 
     // =========================================================================
-    // updateNote — Mise à jour de la note
+    // updateNote - update bookmark note
     // =========================================================================
 
     @Nested
-    @DisplayName("updateNote() — Mise à jour de la note d'un marque-page")
+    @DisplayName("updateNote() - Updates a bookmark note")
     class UpdateNoteTests {
 
         @Test
-        @DisplayName("Met à jour la note avec le texte fourni")
+        @DisplayName("Updates the note with the provided text")
         void updateNote_validNote_updatesNote() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findByUserLgIdAndQuestionLgId(1L, 42L))
@@ -176,14 +176,14 @@ class BookmarkServiceImplTest {
             when(answerRepository.findByQuestionLgIdOrderByIntSortOrderAsc(42L))
                     .thenReturn(List.of());
 
-            service.updateNote(42L, "Ma note personnelle", "alice@test.com");
+            service.updateNote(42L, "My personal note", "alice@test.com");
 
-            assertThat(bookmark.getStrNote()).isEqualTo("Ma note personnelle");
+            assertThat(bookmark.getStrNote()).isEqualTo("My personal note");
             verify(bookmarkRepository).save(bookmark);
         }
 
         @Test
-        @DisplayName("Met la note à null si le texte est vide ou blank")
+        @DisplayName("Sets the note to null when the text is empty or blank")
         void updateNote_blankNote_setsNoteToNull() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findByUserLgIdAndQuestionLgId(1L, 42L))
@@ -198,7 +198,7 @@ class BookmarkServiceImplTest {
         }
 
         @Test
-        @DisplayName("Lève une exception si le marque-page n'existe pas pour cet utilisateur")
+        @DisplayName("Throws an exception when the bookmark does not exist for this user")
         void updateNote_bookmarkNotFound_throwsException() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findByUserLgIdAndQuestionLgId(1L, 99L))
@@ -210,15 +210,15 @@ class BookmarkServiceImplTest {
     }
 
     // =========================================================================
-    // getMyBookmarkedIds — IDs bookmarkés
+    // getMyBookmarkedIds - bookmarked IDs
     // =========================================================================
 
     @Nested
-    @DisplayName("getMyBookmarkedIds() — Récupération des IDs bookmarkés")
+    @DisplayName("getMyBookmarkedIds() - Retrieves bookmarked IDs")
     class GetMyBookmarkedIdsTests {
 
         @Test
-        @DisplayName("Retourne le Set des IDs de questions bookmarkées")
+        @DisplayName("Returns the set of bookmarked question IDs")
         void getMyBookmarkedIds_returnsIds() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findBookmarkedQuestionIdsByUserId(1L))
@@ -230,7 +230,7 @@ class BookmarkServiceImplTest {
         }
 
         @Test
-        @DisplayName("Retourne un Set vide si aucune question bookmarkée")
+        @DisplayName("Returns an empty set when there are no bookmarked questions")
         void getMyBookmarkedIds_noBookmarks_returnsEmptySet() {
             when(userRepository.findByStrEmail("alice@test.com")).thenReturn(Optional.of(user));
             when(bookmarkRepository.findBookmarkedQuestionIdsByUserId(1L))

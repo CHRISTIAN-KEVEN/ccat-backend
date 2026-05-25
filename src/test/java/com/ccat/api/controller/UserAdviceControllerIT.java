@@ -17,15 +17,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Tests d'intégration pour UserAdviceController.
- * Vérifie la récupération, la lecture et le feedback des conseils post-test.
+ * Integration tests for UserAdviceController.
+ * Verifies retrieval, read status, and feedback for post-test advice.
  *
- * Endpoints couverts :
+ * Covered endpoints:
  *   GET   /api/v1/sessions/{sessionId}/advices
  *   PATCH /api/v1/advices/{id}/read
  *   PATCH /api/v1/advices/feedback
  */
-@DisplayName("UserAdviceController — Tests d'intégration")
+@DisplayName("UserAdviceController - Integration Tests")
 class UserAdviceControllerIT extends IntegrationTestBase {
 
     private User   user;
@@ -39,16 +39,16 @@ class UserAdviceControllerIT extends IntegrationTestBase {
 
         Domain domain = createDomain("VERBAL", "Verbal Reasoning");
 
-        // 50 questions nécessaires pour démarrer une session
+        // 50 questions are required to start a session
         var questions = new ArrayList<Question>();
         for (int i = 0; i < 50; i++) {
             Question q = createQuestion(domain, user);
-            createAnswer(q, "A", "Bonne réponse",    true,  1);
-            createAnswer(q, "B", "Mauvaise réponse", false, 2);
+            createAnswer(q, "A", "Correct answer", true, 1);
+            createAnswer(q, "B", "Wrong answer", false, 2);
             questions.add(q);
         }
 
-        // Démarrer puis soumettre une session pour générer des conseils
+        // Start and then submit a session to generate advice
         submittedSessionId = startAndFinishSession();
     }
 
@@ -57,11 +57,11 @@ class UserAdviceControllerIT extends IntegrationTestBase {
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /sessions/{id}/advices — Récupération des conseils")
+    @DisplayName("GET /sessions/{id}/advices - Advice retrieval")
     class GetAdvicesTests {
 
         @Test
-        @DisplayName("200 — Retourne la liste (potentiellement vide) des conseils")
+        @DisplayName("200 - Returns the advice list, which may be empty")
         void getBySession_submittedSession_returns200() throws Exception {
             mockMvc.perform(get("/api/v1/sessions/" + submittedSessionId + "/advices")
                             .header("Authorization", userToken))
@@ -70,14 +70,14 @@ class UserAdviceControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void getBySession_noToken_returns403() throws Exception {
             mockMvc.perform(get("/api/v1/sessions/" + submittedSessionId + "/advices"))
                     .andExpect(status().isForbidden());
         }
 
         @Test
-        @DisplayName("404 — Session inexistante")
+        @DisplayName("404 - Non-existent session")
         void getBySession_nonExistentSession_returns404() throws Exception {
             mockMvc.perform(get("/api/v1/sessions/99999/advices")
                             .header("Authorization", userToken))
@@ -85,7 +85,7 @@ class UserAdviceControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("404 — Session d'un autre utilisateur inaccessible")
+        @DisplayName("404 - Another user's session is inaccessible")
         void getBySession_sessionOfAnotherUser_returns404() throws Exception {
             createUser("eve@test.com", "Str0ng!Pass");
             String eveToken = bearerToken("eve@test.com");
@@ -101,11 +101,11 @@ class UserAdviceControllerIT extends IntegrationTestBase {
     // =========================================================================
 
     @Nested
-    @DisplayName("PATCH /advices/{id}/read — Marquage comme lu")
+    @DisplayName("PATCH /advices/{id}/read - Mark as read")
     class MarkReadTests {
 
         @Test
-        @DisplayName("404 — Conseil inexistant")
+        @DisplayName("404 - Non-existent advice")
         void markRead_nonExistentAdvice_returns404() throws Exception {
             mockMvc.perform(patch("/api/v1/advices/99999/read")
                             .header("Authorization", userToken))
@@ -113,14 +113,14 @@ class UserAdviceControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void markRead_noToken_returns403() throws Exception {
             mockMvc.perform(patch("/api/v1/advices/1/read"))
                     .andExpect(status().isForbidden());
         }
 
         @Test
-        @DisplayName("404 — Conseil d'un autre utilisateur non accessible")
+        @DisplayName("404 - Another user's advice is inaccessible")
         void markRead_adviceOfAnotherUser_returns404() throws Exception {
             createUser("eve@test.com", "Str0ng!Pass");
             String eveToken = bearerToken("eve@test.com");
@@ -136,13 +136,13 @@ class UserAdviceControllerIT extends IntegrationTestBase {
     // =========================================================================
 
     @Nested
-    @DisplayName("PATCH /advices/feedback — Soumission du feedback")
+    @DisplayName("PATCH /advices/feedback - Submit feedback")
     class FeedbackTests {
 
         @Test
-        @DisplayName("404 — Conseil inexistant")
+        @DisplayName("404 - Non-existent advice")
         void submitFeedback_nonExistentAdvice_returns404() throws Exception {
-            var request = new UserAdviceFeedbackRequest(99999L, true, "Utile !", 2000);
+            var request = new UserAdviceFeedbackRequest(99999L, true, "Helpful!", 2000);
 
             mockMvc.perform(patch("/api/v1/advices/feedback")
                             .header("Authorization", userToken)
@@ -152,7 +152,7 @@ class UserAdviceControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("401 — Non authentifié")
+        @DisplayName("401 - Unauthenticated")
         void submitFeedback_noToken_returns403() throws Exception {
             var request = new UserAdviceFeedbackRequest(1L, true, "Note", 1000);
 
@@ -163,7 +163,7 @@ class UserAdviceControllerIT extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("400 — Body manquant")
+        @DisplayName("400 - Missing body")
         void submitFeedback_emptyBody_returns400() throws Exception {
             mockMvc.perform(patch("/api/v1/advices/feedback")
                             .header("Authorization", userToken)
@@ -174,7 +174,7 @@ class UserAdviceControllerIT extends IntegrationTestBase {
     }
 
     // =========================================================================
-    // Helper privé
+    // Private helper
     // =========================================================================
 
     private Long startAndFinishSession() throws Exception {

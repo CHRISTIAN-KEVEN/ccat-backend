@@ -353,7 +353,7 @@ public class AuthService {
     }
 
     private void applyNewVerificationToken(User user) {
-        // OTP 6 chiffres — même mécanique que le reset password
+        // 6-digit OTP using the same mechanism as password reset
         user.setStrVerificationToken(String.format("%06d", SECURE_RANDOM.nextInt(1_000_000)));
         user.setDtVerificationTokenExpires(LocalDateTime.now().plusHours(VERIFICATION_TTL_HOURS));
     }
